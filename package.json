@@ -5,9 +5,9 @@
   "scripts": {
     "build": "bun run build:all",
     "build:all": "bun run build:file-drop",
-    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop run build",
+    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop build",
     "dev": "bun run dev:file-drop",
-    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop run dev"
+    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop dev"
   },
   "module": "index.ts",
   "type": "module",
