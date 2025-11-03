@@ -1,5 +1,14 @@
 {
   "name": "dr_widget",
+  "version": "0.1.0",
+  "workspaces": ["src/dr_widget/widgets/*"],
+  "scripts": {
+    "build": "bun run build:all",
+    "build:all": "bun run build:file-drop",
+    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop run build",
+    "dev": "bun run dev:file-drop",
+    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop run dev"
+  },
   "module": "index.ts",
   "type": "module",
   "private": true,
