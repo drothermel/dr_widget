@@ -2,9 +2,11 @@
   "name": "@dr-widget/file_drop",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w"
+    "build": "rolldown -c",
+    "dev": "rolldown -c -w",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@anywidget/svelte": "^0.1.0",
@@ -12,12 +14,11 @@
   },
   "devDependencies": {
     "@lucide/svelte": "^0.544.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/bun": "latest",
     "bits-ui": "^2.9.9",
     "clsx": "^2.1.1",
     "prettier": "^3.6.2",
-    "rollup": "^4.52.5",
+    "rolldown": "^1.0.0-beta.46",
     "rollup-plugin-svelte": "^7.2.3",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.16"
