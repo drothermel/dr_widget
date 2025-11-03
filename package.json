@@ -5,9 +5,10 @@
   "scripts": {
     "build": "bun run build:all",
     "build:all": "bun run build:file-drop",
-    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop build",
+    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite build",
     "dev": "bun run dev:file-drop",
-    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop dev"
+    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite dev",
+    "preview:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite preview"
   },
   "module": "index.ts",
   "type": "module",
@@ -18,10 +19,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "prettier": "^3.6.2",
-    "rolldown": "^1.0.0-beta.46",
-    "rollup-plugin-svelte": "^7.2.3",
-    "tailwindcss": "^4.1.16"
+    "prettier": "^3.6.2"
   },
   "peerDependencies": {
     "typescript": "^5"
