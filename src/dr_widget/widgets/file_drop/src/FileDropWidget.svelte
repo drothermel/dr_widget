@@ -17,7 +17,11 @@
 </script>
 
 <div class="p-6">
-  <FileDropZone onUpload={handleUpload} maxFiles={5}>
+  <FileDropZone
+    maxFiles={5}
+    fileCount={bindings?.file_count ?? 0}
+    onUpload={handleUpload}
+  >
     <div class="text-center py-8">
       <p>Drop files here</p>
     </div>
