@@ -11,11 +11,15 @@
     "svelte": "^5.43.2"
   },
   "devDependencies": {
+    "@lucide/svelte": "^0.544.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/bun": "latest",
+    "bits-ui": "^2.9.9",
+    "clsx": "^2.1.1",
+    "prettier": "^3.6.2",
     "rollup": "^4.52.5",
     "rollup-plugin-svelte": "^7.2.3",
-    "prettier": "^3.6.2",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.16"
   },
   "peerDependencies": {
