@@ -69,7 +69,51 @@
   let showLoadedPreview = $state(false);
   let previewFromLoaded = $state(false);
   let loadedConfigRaw = $state<string | undefined>(undefined);
+  let loadedConfigPath = $state<string | undefined>(undefined);
   let isDirty = $state(false);
+
+  const handleSaveSuccess = ({
+    fileName,
+    timestamp,
+  }: {
+    fileName?: string;
+    timestamp: string;
+  }) => {
+    const raw = bindings.selected_config;
+    loadedConfigRaw = raw ?? "";
+    isDirty = false;
+    if (fileName) {
+      loadedConfigPath = fileName;
+      lastLoadedFileName = fileName;
+    }
+
+    const formattedSavedAt = formatSavedAt(timestamp) ?? timestamp;
+
+    let parsed: unknown;
+    if (raw) {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = loadedConfigSummary?.parsed;
+      }
+    }
+
+    loadedConfigSummary = {
+      name: fileName ?? loadedConfigSummary?.name ?? "Config saved",
+      savedAt: formattedSavedAt,
+      version: loadedConfigSummary?.version,
+      rawText: raw ?? loadedConfigSummary?.rawText,
+      parsed: parsed ?? loadedConfigSummary?.parsed,
+    };
+
+    previewFromLoaded = false;
+    showLoadedPreview = false;
+    bindings.error = "";
+  };
+
+  const handleSaveError = (message: string) => {
+    bindings.error = message;
+  };
 
   const computeByteSize = (input: string): number => {
     if (typeof TextEncoder !== "undefined") {
@@ -118,9 +162,7 @@
 
   $effect(() => {
     if (!managerOpen) return;
-    if (activeTab !== "find") {
-      activeTab = "find";
-    }
+    activeTab = isDirty ? "save" : "find";
   });
 
   $effect(() => {
@@ -160,7 +202,12 @@
       }
     }
 
-    isDirty = loadedConfigRaw !== undefined && raw !== loadedConfigRaw;
+    if (loadedConfigRaw === undefined) {
+      loadedConfigRaw = raw;
+      isDirty = false;
+    } else {
+      isDirty = raw !== loadedConfigRaw;
+    }
 
     loadedConfigSummary = {
       name: lastLoadedFileName ?? loadedConfigSummary?.name ?? "Config loaded",
@@ -201,6 +248,7 @@
       previewFromLoaded = false;
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
+      loadedConfigPath = undefined;
       bindings.error = "";
       resetPreviewState();
       loadedConfigRaw = undefined;
@@ -213,6 +261,9 @@
     }
     bindings.error = "";
     resetPreviewState();
+    loadedConfigPath = undefined;
+    loadedConfigRaw = undefined;
+    isDirty = false;
   };
 
   const handleLoadConfig = () => {
@@ -246,6 +297,7 @@
     };
     bindingHandlers.writeSelectedConfig(previewText);
     loadedConfigRaw = previewText;
+    loadedConfigPath = summaryName;
     isDirty = false;
 
     if (parsedFiles.length > 0) {
@@ -328,11 +380,13 @@
         </Tabs.Content>
 
         <Tabs.Content value="save">
-          <SaveConfigPanel>
-            <p class="text-sm text-zinc-500 dark:text-zinc-400">
-              TBD – hook into notebook persistence.
-            </p>
-          </SaveConfigPanel>
+          <SaveConfigPanel
+            rawConfig={bindings.selected_config}
+            defaultFileName={loadedConfigPath ?? lastLoadedFileName ?? "config.json"}
+            dirty={isDirty}
+            onSaveSuccess={handleSaveSuccess}
+            onSaveError={handleSaveError}
+          />
         </Tabs.Content>
       </Tabs.Root>
     </div>
@@ -399,11 +453,6 @@
             >
               View Config
             </Button>
-            {#if isDirty}
-              <Badge variant="secondary" class="self-center bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
-                Unsaved changes
-              </Badge>
-            {/if}
           {/if}
         </div>
       </div>
