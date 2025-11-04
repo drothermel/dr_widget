@@ -26,7 +26,7 @@
 
 <div class="p-6">
   <FileDropZone
-    maxFiles={5}
+    {maxFiles}
     fileCount={bindings?.file_count ?? 0}
     onUpload={handleUpload}
   >

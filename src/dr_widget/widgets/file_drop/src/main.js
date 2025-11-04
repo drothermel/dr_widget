@@ -1,5 +1,5 @@
 import './app.css';
-import App from './FileDropWidget.svelte';
+import App from './App.svelte';
 import { mount } from 'svelte';
 
 mount(App, {
