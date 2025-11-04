@@ -1,10 +1,18 @@
-<script>
+<script lang="ts">
   import { FileDropZone } from "$lib/components/ui/file-drop-zone";
 
-  /** @type {{ bindings: { file_count: number, files: string, error: string }}} */
-  let { bindings } = $props();
+  type FileBinding = {
+    file_count: number;
+    files: string;
+    error: string;
+  };
 
-  function handleUpload(files) {
+  const { bindings, maxFiles = 5 } = $props<{
+    bindings: FileBinding;
+    maxFiles?: number;
+  }>();
+
+  async function handleUpload(files: File[]): Promise<void> {
     bindings.file_count = files.length;
     bindings.files = JSON.stringify(
       files.map((f) => ({
