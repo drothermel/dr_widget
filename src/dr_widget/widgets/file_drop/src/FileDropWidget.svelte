@@ -15,12 +15,17 @@
     file_count: number;
     files: string;
     error: string;
+    max_files?: number;
   };
 
-  const { bindings, maxFiles = 5 } = $props<{
+  const { bindings, maxFiles: maxFilesProp } = $props<{
     bindings: FileBinding;
     maxFiles?: number;
   }>();
+
+  const maxFiles = $derived(
+    (): number => maxFilesProp ?? bindings?.max_files ?? 5
+  );
 
   const parsedFiles = $derived(readBoundFiles());
 
@@ -98,12 +103,17 @@
 </script>
 
 <div class="space-y-6">
-  <FileDropZone
-    {maxFiles}
-    fileCount={parsedFiles.length}
-    onUpload={handleUpload}
-    onFileRejected={handleFileRejected}
-  />
+  <div class="space-y-2">
+    <h1 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+      Load Config
+    </h1>
+    <FileDropZone
+      maxFiles={maxFiles()}
+      fileCount={parsedFiles.length}
+      onUpload={handleUpload}
+      onFileRejected={handleFileRejected}
+    />
+  </div>
 
   {#if bindings.error}
     <div

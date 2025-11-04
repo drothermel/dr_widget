@@ -7,6 +7,7 @@
     files: "",
     file_count: 0,
     error: "",
+    max_files: 4,
   });
 
   // Watch for changes to display them
@@ -29,7 +30,7 @@
     </div>
 
     <div class="border-4 p-2 border-y-violet-400 border-x-violet-200">
-      <FileDropWidget {bindings} />
+      <FileDropWidget {bindings} max_files={3} />
     </div>
 
     <div

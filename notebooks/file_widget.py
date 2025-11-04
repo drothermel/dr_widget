@@ -14,7 +14,7 @@ def _():
 def _(mo):
     from dr_widget import FileDropWidget
 
-    widget = FileDropWidget()
+    widget = FileDropWidget(max_files=3)
     mo.vstack(
         [
             mo.md("### File Drop Demo"),
@@ -23,6 +23,12 @@ def _(mo):
         ]
     )
     return (widget,)
+
+
+@app.cell
+def _(widget):
+    widget.max_files
+    return
 
 
 @app.cell
