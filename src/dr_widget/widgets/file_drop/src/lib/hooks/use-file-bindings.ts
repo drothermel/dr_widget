@@ -11,6 +11,7 @@ export type FileBinding = {
   files: string;
   error: string;
   max_files?: number;
+  selected_config?: string | null;
 };
 
 type UploadHandler = FileDropZoneProps["onUpload"];
@@ -23,59 +24,54 @@ export function createFileBindingHandlers({
   bindings: FileBinding;
   maxFilesProp?: number;
 }) {
+  const normalizeFiles = (files: unknown): BoundFile[] => {
+    if (!Array.isArray(files)) return [];
+
+    return files
+      .filter(
+        (item) =>
+          item &&
+          typeof item.name === "string" &&
+          typeof item.size === "number" &&
+          typeof item.type === "string"
+      )
+      .slice(0, 1)
+      .map((item) => ({
+        name: item.name,
+        size: item.size,
+        type: item.type,
+      }));
+  };
+
   const readBoundFiles = (): BoundFile[] => {
     if (!bindings?.files) return [];
     try {
-      const parsed = JSON.parse(bindings.files) as BoundFile[];
-      if (!Array.isArray(parsed)) return [];
-
-      return parsed
-        .filter(
-          (item) =>
-            item &&
-            typeof item.name === "string" &&
-            typeof item.size === "number" &&
-            typeof item.type === "string"
-        )
-        .map((item) => ({
-          name: item.name,
-          size: item.size,
-          type: item.type,
-        }));
+      const parsed = JSON.parse(bindings.files) as unknown;
+      return normalizeFiles(parsed);
     } catch {
       return [];
     }
   };
 
   const writeBoundFiles = (files: BoundFile[]): void => {
-    bindings.files = JSON.stringify(files);
-    bindings.file_count = files.length;
+    const normalized = normalizeFiles(files);
+    bindings.files = JSON.stringify(normalized);
+    bindings.file_count = normalized.length;
   };
 
   const maxFiles = (): number => maxFilesProp ?? bindings?.max_files ?? 5;
 
   const handleUpload: UploadHandler = async (files) => {
-    const existing = readBoundFiles();
-    const merged = [...existing];
+    const [first] = files;
+    if (!first) return;
 
-    for (const file of files) {
-      const duplicate = merged.some(
-        (item) =>
-          item.name === file.name &&
-          item.size === file.size &&
-          item.type === file.type
-      );
+    const nextFile = {
+      name: first.name,
+      size: first.size,
+      type: first.type,
+    };
 
-      if (!duplicate) {
-        merged.push({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
-      }
-    }
-
-    writeBoundFiles(merged);
+    writeBoundFiles([nextFile]);
     bindings.error = "";
   };
 
@@ -93,6 +89,10 @@ export function createFileBindingHandlers({
     }
   };
 
+  const writeSelectedConfig = (contents: string | null | undefined): void => {
+    bindings.selected_config = contents ?? "";
+  };
+
   return {
     bindings,
     readBoundFiles,
@@ -101,5 +101,6 @@ export function createFileBindingHandlers({
     handleUpload,
     handleFileRejected,
     removeFile,
+    writeSelectedConfig,
   };
 }

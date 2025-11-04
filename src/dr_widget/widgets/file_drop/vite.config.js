@@ -9,6 +9,9 @@ export default defineConfig({
     svelte({ compilerOptions: { runes: true } }),
     react(),
   ],
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
   resolve: {
     alias: {
       $lib: path.resolve('./src/lib')
