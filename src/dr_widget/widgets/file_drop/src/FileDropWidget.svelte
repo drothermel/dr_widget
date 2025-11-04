@@ -4,6 +4,7 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
 
   import BrowseConfigsPanel from "$lib/components/file-drop/BrowseConfigsPanel.svelte";
+  import LoadedConfigPreview from "$lib/components/file-drop/LoadedConfigPreview.svelte";
   import SaveConfigPanel from "$lib/components/file-drop/SaveConfigPanel.svelte";
   import {
     createFileBindingHandlers,
@@ -53,9 +54,20 @@
         name?: string;
         savedAt?: string;
         version?: string;
+        rawText?: string;
+        parsed?: unknown;
       }
     | undefined
   >(undefined);
+  let showLoadedPreview = $state(false);
+  let previewFromLoaded = $state(false);
+
+  const computeByteSize = (input: string): number => {
+    if (typeof TextEncoder !== "undefined") {
+      return new TextEncoder().encode(input).byteLength;
+    }
+    return input.length;
+  };
 
   const resetPreviewState = () => {
     previewFile = undefined;
@@ -106,6 +118,8 @@
     const raw = bindings.selected_config;
     if (!raw) {
       loadedConfigSummary = undefined;
+      previewFromLoaded = false;
+      showLoadedPreview = false;
       lastLoadedFileName = undefined;
       return;
     }
@@ -136,6 +150,8 @@
       name: lastLoadedFileName ?? loadedConfigSummary?.name ?? "Config loaded",
       savedAt,
       version,
+      rawText: raw,
+      parsed,
     };
   });
 
@@ -154,9 +170,21 @@
     };
     previewText = fileText;
     bindings.error = "";
+    previewFromLoaded = false;
   };
 
   const handleRemove = () => {
+    if (previewFromLoaded) {
+      bindingHandlers.writeSelectedConfig(null);
+      loadedConfigSummary = undefined;
+      previewFromLoaded = false;
+      showLoadedPreview = false;
+      lastLoadedFileName = undefined;
+      bindings.error = "";
+      resetPreviewState();
+      return;
+    }
+
     if (parsedFiles.length > 0) {
       bindingHandlers.removeFile(0);
     }
@@ -185,7 +213,28 @@
     bindings.error = "";
     resetPreviewState();
     managerOpen = false;
+    showLoadedPreview = false;
+    previewFromLoaded = false;
   };
+
+  $effect(() => {
+    if (managerOpen) {
+      showLoadedPreview = false;
+
+      if (!previewFile && loadedConfigSummary?.rawText) {
+        previewFromLoaded = true;
+        previewText = loadedConfigSummary.rawText;
+        previewFile = {
+          name: loadedConfigSummary.name ?? "Loaded config",
+          size: computeByteSize(loadedConfigSummary.rawText),
+          type: "application/json",
+        };
+      }
+    } else if (previewFromLoaded) {
+      resetPreviewState();
+      previewFromLoaded = false;
+    }
+  });
 </script>
 
 <div class="space-y-6">
@@ -200,7 +249,7 @@
             Load a JSON config or prepare a notebook save.
           </p>
         </div>
-        <Button variant="ghost" onclick={() => (managerOpen = false)}>
+        <Button variant="outline" onclick={() => (managerOpen = false)}>
           Close
         </Button>
       </div>
@@ -236,6 +285,19 @@
         </Tabs.Content>
       </Tabs.Root>
     </div>
+  {:else if showLoadedPreview && loadedConfigSummary?.rawText}
+    <LoadedConfigPreview
+      fileName={loadedConfigSummary.name}
+      savedAtLabel={loadedConfigSummary.savedAt}
+      versionLabel={loadedConfigSummary.version}
+      rawContents={loadedConfigSummary.rawText}
+      parsedContents={loadedConfigSummary.parsed}
+      onClose={() => (showLoadedPreview = false)}
+      onManage={() => {
+        showLoadedPreview = false;
+        managerOpen = true;
+      }}
+    />
   {:else}
     <div
       class="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
@@ -268,9 +330,20 @@
           {/if}
         </div>
 
-        <Button variant="outline" onclick={() => (managerOpen = true)}>
-          Manage Configs
-        </Button>
+        <div class="flex gap-2">
+          <Button variant="outline" onclick={() => (managerOpen = true)}>
+            Manage Configs
+          </Button>
+          {#if loadedConfigSummary?.rawText}
+            <Button
+              variant="outline"
+              disabled={!loadedConfigSummary?.rawText}
+              onclick={() => (showLoadedPreview = true)}
+            >
+              View Config
+            </Button>
+          {/if}
+        </div>
       </div>
     </div>
   {/if}

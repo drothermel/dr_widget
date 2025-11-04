@@ -11,6 +11,39 @@ with app.setup:
 
 @app.cell(hide_code=True)
 def _():
+    slightly_modified_example = json.loads("""
+    {
+      "saved_at": "2025-11-04T00:25:58.747765+00:00",
+      "selections": {
+        "active_panel": [
+          "summary"
+        ],
+        "harvest_window_min": 1,
+        "highlight_experimental": false,
+        "notes": "Monitor harvest cadence",
+        "orchard": [
+          "Cloudberry Basin",
+          "THE BESTEST ORCHARD EVER!!!!!"
+        ],
+        "orchard_query": "Cloudberry",
+        "region": [
+          "Emerald Belt"
+        ],
+        "show_outliers": true,
+        "view_mode": [
+          "Overview"
+        ],
+        "yield_target": 40.0
+      },
+      "version": "stores_nb_state-init-v0"
+    }
+    """)
+    slightly_modified_example
+    return
+
+
+@app.cell(hide_code=True)
+def _():
     widget = mo.ui.anywidget(FileDropWidget(max_files=1))
     widget
     return (widget,)
@@ -40,6 +73,11 @@ def _(widget):
             )
     else:
         mo.output.append(mo.md("_No config loaded yet._"))
+    return
+
+
+@app.cell
+def _():
     return
 
 
