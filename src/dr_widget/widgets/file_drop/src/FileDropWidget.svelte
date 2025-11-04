@@ -103,13 +103,7 @@
     fileCount={parsedFiles.length}
     onUpload={handleUpload}
     onFileRejected={handleFileRejected}
-  >
-    <div class="py-10 text-center">
-      <p class="text-sm text-zinc-600 dark:text-zinc-300">
-        Drop files here or click to select.
-      </p>
-    </div>
-  </FileDropZone>
+  />
 
   {#if bindings.error}
     <div
