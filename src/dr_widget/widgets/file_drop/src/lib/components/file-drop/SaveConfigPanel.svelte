@@ -10,15 +10,19 @@
 
   type SaveFilePickerOptions = {
     suggestedName?: string;
+    startIn?: BrowserFileHandle;
     types?: Array<{ description?: string; accept: Record<string, string[]> }>;
   };
 
   type BrowserFileHandle = {
+    readonly kind?: "file" | "directory";
     name: string;
     createWritable: () => Promise<{
       write: (data: Blob | BufferSource | string) => Promise<void>;
       close: () => Promise<void>;
     }>;
+    getFile?: () => Promise<File>;
+    requestPermission?: (options?: { mode?: "read" | "readwrite" }) => Promise<PermissionState>;
   };
 
   type FileSystemAccessWindow = Window &
@@ -55,25 +59,35 @@
   const inputId = `save-config-${Math.random().toString(36).slice(2)}`;
 
   $effect(() => {
-    if (!fileHandle && !chosenFileName && defaultFileName) {
+    if (!fileHandle && defaultFileName && !chosenFileName) {
       chosenFileName = defaultFileName;
     }
   });
 
+  const buildPickerOptions = (): SaveFilePickerOptions => {
+    const options: SaveFilePickerOptions = {
+      suggestedName: chosenFileName || defaultFileName,
+      types: [
+        {
+          description: "JSON",
+          accept: {
+            "application/json": [".json"],
+          },
+        },
+      ],
+    };
+
+    if (fileHandle) {
+      options.startIn = fileHandle;
+    }
+
+    return options;
+  };
+
   const pickHandle = async () => {
     if (!supportsFileSystemAccess || !fsWindow?.showSaveFilePicker) return null;
     try {
-      const handle = await fsWindow.showSaveFilePicker({
-        suggestedName: chosenFileName || defaultFileName,
-        types: [
-          {
-            description: "JSON",
-            accept: {
-              "application/json": [".json"],
-            },
-          },
-        ],
-      });
+      const handle = await fsWindow.showSaveFilePicker(buildPickerOptions());
       fileHandle = handle;
       chosenFileName = handle.name;
       saveError = "";
@@ -128,12 +142,15 @@
         return;
       }
 
+      await handle.requestPermission?.({ mode: "readwrite" });
+
       const writable = await handle.createWritable();
       await writable.write(rawConfig);
       await writable.close();
 
       const timestamp = new Date().toISOString();
       lastSavedMessage = `Saved ${handle.name} at ${new Date(timestamp).toLocaleString()}`;
+      fileHandle = handle;
       onSaveSuccess?.({ fileName: handle.name, timestamp });
       saveError = "";
     } catch (error) {
