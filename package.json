@@ -1,0 +1,27 @@
+{
+  "name": "dr_widget",
+  "version": "0.1.0",
+  "workspaces": ["src/dr_widget/widgets/*"],
+  "scripts": {
+    "build": "bun run build:all",
+    "build:all": "bun run build:file-drop",
+    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite build",
+    "dev": "bun run dev:file-drop",
+    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite dev",
+    "preview:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite preview"
+  },
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@anywidget/svelte": "^0.1.0",
+    "svelte": "^5.43.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.6.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
