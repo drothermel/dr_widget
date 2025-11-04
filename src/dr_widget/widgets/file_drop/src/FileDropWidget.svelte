@@ -31,7 +31,7 @@
     onUpload={handleUpload}
   >
     <div class="text-center py-8">
-      <p>Drop files here</p>
+      <p>Drop files here or click to select!</p>
     </div>
   </FileDropZone>
 </div>
