@@ -1,14 +1,25 @@
 {
   "extends": "../../../../tsconfig.base.json",
+  "strict": true,
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"]
+      "$lib": [
+        "./src/lib"
+      ],
+      "$lib/*": [
+        "./src/lib/*"
+      ]
     },
-    "types": ["svelte"]
+    "types": [
+      "svelte"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "static"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "static"
+  ]
 }
-
