@@ -77,7 +77,10 @@ def _(widget):
 
 
 @app.cell
-def _():
+def _(widget):
+    sel = json.loads(widget.selected_config)
+    sel["selections"]["harvest_window_min"] = 10000000000000
+    widget.selected_config = json.dumps(sel)
     return
 
 
