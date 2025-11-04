@@ -18,94 +18,43 @@
   });
 </script>
 
-<main>
-  <div class="container">
-    <h1>File Drop Widget - Dev Preview</h1>
-    <p class="subtitle">Testing the anywidget component in isolation</p>
+<main class="mx-auto max-w-5xl p-8 font-sans">
+  <div class="flex flex-col gap-8">
+    <div class="space-y-2">
+      <h1 class="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
+        File Drop Widget – Dev Preview
+      </h1>
+      <p class="text-base text-zinc-600 dark:text-zinc-300">
+        Testing the AnyWidget component in isolation.
+      </p>
+    </div>
 
-    <!-- Your actual widget component -->
     <FileDropWidget {bindings} />
 
-    <!-- Debug panel to see the state -->
-    <div class="debug-panel">
-      <h2>Debug Output</h2>
-      <div class="debug-section">
-        <strong>File Count:</strong>
-        {bindings.file_count}
+    <div
+      class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900"
+    >
+      <h2 class="text-lg font-medium text-zinc-800 dark:text-zinc-100">Debug Output</h2>
+
+      <div class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800">
+        <strong class="font-semibold text-zinc-700 dark:text-zinc-200">File Count:</strong>
+        <span class="ml-2 text-zinc-600 dark:text-zinc-300">{bindings.file_count}</span>
       </div>
-      <div class="debug-section">
-        <strong>Files Data:</strong>
-        <pre>{bindings.files || "(empty)"}</pre>
+
+      <div class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800">
+        <strong class="font-semibold text-zinc-700 dark:text-zinc-200">Files Data:</strong>
+        <pre class="mt-2 overflow-x-auto rounded-md bg-zinc-900/10 p-2 font-mono text-xs dark:bg-zinc-50/10">
+{bindings.files || "(empty)"}</pre>
       </div>
+
       {#if bindings.error}
-        <div class="debug-section error">
-          <strong>Error:</strong>
-          {bindings.error}
+        <div
+          class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-300"
+        >
+          <strong class="font-semibold">Error:</strong>
+          <span class="ml-2">{bindings.error}</span>
         </div>
       {/if}
     </div>
   </div>
 </main>
-
-<style>
-  main {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
-  }
-
-  .container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  h1 {
-    color: #333;
-    margin: 0;
-  }
-
-  .subtitle {
-    color: #666;
-    margin: 0;
-  }
-
-  .debug-panel {
-    background: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 2rem;
-  }
-
-  .debug-panel h2 {
-    margin-top: 0;
-    color: #555;
-    font-size: 1.2rem;
-  }
-
-  .debug-section {
-    margin-top: 1rem;
-    padding: 0.5rem;
-    background: white;
-    border-radius: 4px;
-  }
-
-  .debug-section.error {
-    background: #fee;
-    border: 1px solid #fcc;
-  }
-
-  pre {
-    margin: 0.5rem 0 0 0;
-    padding: 0.5rem;
-    background: #eee;
-    border-radius: 4px;
-    overflow-x: auto;
-    font-size: 0.875rem;
-  }
-</style>
