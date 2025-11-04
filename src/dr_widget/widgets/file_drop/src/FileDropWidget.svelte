@@ -3,10 +3,12 @@
 
   import BrowseConfigsPanel from "$lib/components/file-drop/BrowseConfigsPanel.svelte";
   import SaveConfigPanel from "$lib/components/file-drop/SaveConfigPanel.svelte";
+  import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
   import {
     createFileBindingHandlers,
     type FileBinding,
   } from "$lib/hooks/use-file-bindings";
+  import demoState from "$lib/@test_state.json";
 
   const { bindings, maxFiles: maxFilesProp } = $props<{
     bindings: FileBinding;
@@ -20,6 +22,9 @@
 
   const parsedFiles = $derived(bindingHandlers.readBoundFiles());
   const maxFiles = $derived(bindingHandlers.maxFiles());
+
+  const demoData = demoState as unknown;
+  const demoRaw = JSON.stringify(demoState, null, 2);
 
   const handleLoadConfig = (index: number) => {
     // TODO: replace with real load logic once wired to notebook events
@@ -56,4 +61,6 @@
       </Tabs.Content>
     </Tabs.Root>
   </div>
+
+  <ConfigViewerPanel data={demoData} rawJson={demoRaw} />
 </div>

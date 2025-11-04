@@ -11,7 +11,13 @@
   },
   "dependencies": {
     "@anywidget/svelte": "^0.1.0",
+    "@zerodevx/svelte-json-view": "^1.0.11",
+    "elkjs": "^0.11.0",
     "lucide-svelte": "^0.552.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-zoom-pan-pinch": "^3.7.0",
+    "reaflow": "^5.4.1",
     "svelte": "^5.43.2"
   },
   "devDependencies": {
@@ -20,6 +26,9 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tailwindcss/postcss": "^4.0.9",
     "@types/bun": "latest",
+    "@types/react": "18.2.74",
+    "@types/react-dom": "18.2.25",
+    "@vitejs/plugin-react-swc": "3.7.0",
     "autoprefixer": "^10.4.20",
     "bits-ui": "^2.11.0",
     "clsx": "^2.1.1",
