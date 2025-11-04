@@ -89,7 +89,7 @@
   });
 
   $effect(() => {
-    if (parsedFiles.length === 0 && previewFile) {
+    if (parsedFiles.length === 0 && previewFile && !previewFromLoaded) {
       resetPreviewState();
     }
   });
