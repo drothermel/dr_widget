@@ -7,7 +7,7 @@
     files: "",
     file_count: 0,
     error: "",
-    max_files: 4,
+    max_files: 1,
   });
 
   // Watch for changes to display them
@@ -24,14 +24,11 @@
   <div class="flex flex-col gap-8">
     <div class="space-y-2">
       <h1 class="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-        File Drop Widget
+        Widget
       </h1>
-      <p>Widget enclosed in purple border with padding 2px.</p>
     </div>
 
-    <div class="border-4 p-2 border-y-violet-400 border-x-violet-200">
-      <FileDropWidget {bindings} max_files={3} />
-    </div>
+    <FileDropWidget {bindings} max_files={1} />
 
     <div
       class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900"
