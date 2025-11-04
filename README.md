@@ -29,7 +29,7 @@ Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `u
   - `widgets/file_drop/` – widget workspace (Svelte source in `src/`, build output in `static/`).
     - `src/FileDropWidget.svelte` – orchestration layer wiring bindings into the panel components.
     - `src/lib/hooks/use-file-bindings.ts` – shared logic for syncing AnyWidget traitlets.
-    - `src/lib/components/` – shadcn-style UI primitives and file-drop panels.
+    - `src/lib/components/` – shadcn-style UI primitives and file-drop panels, including a config viewer card with both a tree view and graph view for JSON payloads.
 - `docs/` – additional reference material (architecture, development workflows).
 - `notebooks/file_widget.py` – Marimo notebook that exercises the file-drop widget.
 

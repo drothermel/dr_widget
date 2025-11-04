@@ -13,6 +13,7 @@ uv sync            # optional: sets up Python deps from pyproject
 - `bun run build:file-drop` – Produce the optimized bundle in `static/`.
 - `bun run build` – Build all widgets (currently delegates to `file_drop`).
 - `npx svelte-check --tsconfig src/dr_widget/widgets/file_drop/tsconfig.json` – Type-check `.svelte` files.
+- The file-drop workspace also enables Vite’s React plugin to support the graph-style JSON preview. `bun install` pulls in `react`, `react-dom`, `reaflow`, and `react-zoom-pan-pinch`; no extra setup is required beyond the standard Bun install.
 
 The widget uses Tailwind v4, shadcn-svelte components, and the helper `use-file-bindings` hook for AnyWidget bindings. Shared UI lives in `src/lib/components`.
 
