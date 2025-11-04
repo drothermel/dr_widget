@@ -44,8 +44,15 @@
   };
 
   let previewFile = $state<BoundFile | undefined>(undefined);
-  let previewText = $state<string | undefined>(undefined);
-  let previewJson = $state<unknown | undefined>(undefined);
+  let previewText = $state<string | undefined>(bindings.selected_config);
+  let previewJson = $state<unknown | undefined>(() => {
+    if (!bindings.selected_config) return undefined;
+    try {
+      return JSON.parse(bindings.selected_config);
+    } catch {
+      return undefined;
+    }
+  });
   let managerOpen = $state(false);
   let activeTab = $state("find");
   let lastLoadedFileName = $state<string | undefined>(undefined);
@@ -61,6 +68,8 @@
   >(undefined);
   let showLoadedPreview = $state(false);
   let previewFromLoaded = $state(false);
+  let loadedConfigRaw = $state<string | undefined>(undefined);
+  let isDirty = $state(false);
 
   const computeByteSize = (input: string): number => {
     if (typeof TextEncoder !== "undefined") {
@@ -116,11 +125,16 @@
 
   $effect(() => {
     const raw = bindings.selected_config;
-    if (!raw) {
+    if (!raw || raw.trim().length === 0) {
       loadedConfigSummary = undefined;
       previewFromLoaded = false;
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
+      loadedConfigRaw = undefined;
+      isDirty = false;
+      if (!managerOpen) {
+        resetPreviewState();
+      }
       return;
     }
 
@@ -146,6 +160,8 @@
       }
     }
 
+    isDirty = loadedConfigRaw !== undefined && raw !== loadedConfigRaw;
+
     loadedConfigSummary = {
       name: lastLoadedFileName ?? loadedConfigSummary?.name ?? "Config loaded",
       savedAt,
@@ -153,6 +169,11 @@
       rawText: raw,
       parsed,
     };
+
+    if (!previewFromLoaded && !managerOpen) {
+      previewText = raw;
+      previewJson = parsed;
+    }
   });
 
   const handleUpload = async (files: File[]) => {
@@ -182,6 +203,8 @@
       lastLoadedFileName = undefined;
       bindings.error = "";
       resetPreviewState();
+      loadedConfigRaw = undefined;
+      isDirty = false;
       return;
     }
 
@@ -199,12 +222,31 @@
     }
 
     lastLoadedFileName = previewFile?.name ?? lastLoadedFileName;
+    const summaryName = lastLoadedFileName ?? previewFile?.name ?? "Config loaded";
+    let normalized: unknown = previewJson;
+    if (!normalized || typeof normalized !== "object") {
+      try {
+        normalized = JSON.parse(previewText);
+      } catch {
+        bindings.error = "Config is not valid JSON.";
+        return;
+      }
+    }
+
+    if (!normalized || typeof normalized !== "object") {
+      return;
+    }
+
     loadedConfigSummary = {
-      name: lastLoadedFileName ?? previewFile?.name ?? "Config loaded",
+      name: summaryName,
       savedAt: previewSavedAt,
       version: previewVersion,
+      rawText: previewText,
+      parsed: normalized,
     };
     bindingHandlers.writeSelectedConfig(previewText);
+    loadedConfigRaw = previewText;
+    isDirty = false;
 
     if (parsedFiles.length > 0) {
       bindingHandlers.removeFile(0);
@@ -227,9 +269,8 @@
         previewFile = {
           name: loadedConfigSummary.name ?? "Loaded config",
           size: computeByteSize(loadedConfigSummary.rawText),
-            type: "application/json",
-          };
-        previewText = loadedConfigSummary.rawText;
+          type: "application/json",
+        };
         previewJson = loadedConfigSummary.parsed;
       }
     } else if (previewFromLoaded) {
@@ -275,6 +316,7 @@
             parsedContents={previewJson}
             savedAtLabel={previewSavedAt}
             versionLabel={previewVersion}
+            dirty={isDirty}
             error={bindings.error}
             maxFiles={maxFiles}
             onUpload={handleUpload}
@@ -301,6 +343,7 @@
       versionLabel={loadedConfigSummary.version}
       rawContents={loadedConfigSummary.rawText}
       parsedContents={loadedConfigSummary.parsed}
+      dirty={isDirty}
       onClose={() => (showLoadedPreview = false)}
       onManage={() => {
         showLoadedPreview = false;
@@ -330,6 +373,11 @@
                     v{loadedConfigSummary.version}
                   </Badge>
                 {/if}
+                {#if isDirty}
+                  <Badge variant="secondary" class="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                    Unsaved changes
+                  </Badge>
+                {/if}
               </div>
             {/if}
           {:else}
@@ -351,6 +399,11 @@
             >
               View Config
             </Button>
+            {#if isDirty}
+              <Badge variant="secondary" class="self-center bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                Unsaved changes
+              </Badge>
+            {/if}
           {/if}
         </div>
       </div>

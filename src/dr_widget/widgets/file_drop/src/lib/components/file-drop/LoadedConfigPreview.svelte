@@ -9,6 +9,7 @@
     versionLabel,
     rawContents,
     parsedContents,
+    dirty,
     onClose,
     onManage,
   } = $props<{
@@ -17,6 +18,7 @@
     versionLabel?: string;
     rawContents?: string;
     parsedContents?: unknown;
+    dirty?: boolean;
     onClose: () => void;
     onManage?: () => void;
   }>();
@@ -36,6 +38,11 @@
           {#if versionLabel}
             <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
               v{versionLabel}
+            </Badge>
+          {/if}
+          {#if dirty}
+            <Badge variant="secondary" class="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+              Unsaved changes
             </Badge>
           {/if}
         </div>
