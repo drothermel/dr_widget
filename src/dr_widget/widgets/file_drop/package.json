@@ -14,12 +14,13 @@
     "svelte": "^5.43.2"
   },
   "devDependencies": {
+    "@internationalized/date": "^3.8.1",
     "@lucide/svelte": "^0.544.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tailwindcss/postcss": "^4.0.9",
     "@types/bun": "latest",
     "autoprefixer": "^10.4.20",
-    "bits-ui": "^2.9.9",
+    "bits-ui": "^2.11.0",
     "clsx": "^2.1.1",
     "postcss": "^8.4.49",
     "prettier": "^3.6.2",

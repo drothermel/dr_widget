@@ -1,4 +1,5 @@
 <script>
+  import { Separator } from "./lib/components/ui/separator/";
   import FileDropWidget from "./FileDropWidget.svelte";
 
   // Simulate anywidget bindings for testing
@@ -22,28 +23,41 @@
   <div class="flex flex-col gap-8">
     <div class="space-y-2">
       <h1 class="text-3xl font-semibold text-zinc-900 dark:text-zinc-100">
-        File Drop Widget – Dev Preview
+        File Drop Widget
       </h1>
-      <p class="text-base text-zinc-600 dark:text-zinc-300">
-        Testing the AnyWidget component in isolation.
-      </p>
+      <p>Widget enclosed in purple border with padding 2px.</p>
     </div>
 
-    <FileDropWidget {bindings} />
+    <div class="border-4 p-2 border-y-violet-400 border-x-violet-200">
+      <FileDropWidget {bindings} />
+    </div>
 
     <div
       class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900"
     >
-      <h2 class="text-lg font-medium text-zinc-800 dark:text-zinc-100">Debug Output</h2>
+      <h2 class="text-lg font-medium text-zinc-800 dark:text-zinc-100">
+        Debug Output
+      </h2>
 
-      <div class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800">
-        <strong class="font-semibold text-zinc-700 dark:text-zinc-200">File Count:</strong>
-        <span class="ml-2 text-zinc-600 dark:text-zinc-300">{bindings.file_count}</span>
+      <div
+        class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800"
+      >
+        <strong class="font-semibold text-zinc-700 dark:text-zinc-200"
+          >File Count:</strong
+        >
+        <span class="ml-2 text-zinc-600 dark:text-zinc-300"
+          >{bindings.file_count}</span
+        >
       </div>
 
-      <div class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800">
-        <strong class="font-semibold text-zinc-700 dark:text-zinc-200">Files Data:</strong>
-        <pre class="mt-2 overflow-x-auto rounded-md bg-zinc-900/10 p-2 font-mono text-xs dark:bg-zinc-50/10">
+      <div
+        class="mt-4 rounded-md bg-white p-3 text-sm shadow-sm dark:bg-zinc-800"
+      >
+        <strong class="font-semibold text-zinc-700 dark:text-zinc-200"
+          >Files Data:</strong
+        >
+        <pre
+          class="mt-2 overflow-x-auto rounded-md bg-zinc-900/10 p-2 font-mono text-xs dark:bg-zinc-50/10">
 {bindings.files || "(empty)"}</pre>
       </div>
 
