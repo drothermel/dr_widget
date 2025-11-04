@@ -1,5 +1,7 @@
 <script lang="ts">
   import * as Tabs from "$lib/components/ui/tabs/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
 
   import BrowseConfigsPanel from "$lib/components/file-drop/BrowseConfigsPanel.svelte";
   import SaveConfigPanel from "$lib/components/file-drop/SaveConfigPanel.svelte";
@@ -23,11 +25,37 @@
 
   const maxFiles = 1;
 
+  const formatSavedAt = (value: unknown): string | undefined => {
+    if (typeof value === "string" && value) {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Intl.DateTimeFormat(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(parsed);
+      }
+      return value;
+    }
+    return undefined;
+  };
+
   let previewFile = $state<BoundFile | undefined>(undefined);
-  let previewText = $state<string | undefined>(
-    bindings.selected_config ?? undefined
-  );
+  let previewText = $state<string | undefined>(undefined);
   let previewJson = $state<unknown | undefined>(undefined);
+  let managerOpen = $state(false);
+  let activeTab = $state("find");
+  let lastLoadedFileName = $state<string | undefined>(undefined);
+  let loadedConfigSummary = $state<
+    | {
+        name?: string;
+        savedAt?: string;
+        version?: string;
+      }
+    | undefined
+  >(undefined);
 
   const resetPreviewState = () => {
     previewFile = undefined;
@@ -54,6 +82,63 @@
     }
   });
 
+  const previewSavedAt = $derived.by(() => {
+    if (!previewJson || typeof previewJson !== "object") return undefined;
+    return formatSavedAt((previewJson as Record<string, unknown>)["saved_at"]);
+  });
+
+  const previewVersion = $derived.by(() => {
+    if (!previewJson || typeof previewJson !== "object") return undefined;
+    const value = (previewJson as Record<string, unknown>)["version"];
+    if (typeof value === "string" && value) return value;
+    if (typeof value === "number") return String(value);
+    return undefined;
+  });
+
+  $effect(() => {
+    if (!managerOpen) return;
+    if (activeTab !== "find") {
+      activeTab = "find";
+    }
+  });
+
+  $effect(() => {
+    const raw = bindings.selected_config;
+    if (!raw) {
+      loadedConfigSummary = undefined;
+      lastLoadedFileName = undefined;
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = undefined;
+    }
+
+    const savedAt =
+      parsed && typeof parsed === "object"
+        ? formatSavedAt((parsed as Record<string, unknown>)["saved_at"])
+        : undefined;
+
+    let version: string | undefined;
+    if (parsed && typeof parsed === "object") {
+      const value = (parsed as Record<string, unknown>)["version"];
+      if (typeof value === "string" && value) {
+        version = value;
+      } else if (typeof value === "number") {
+        version = String(value);
+      }
+    }
+
+    loadedConfigSummary = {
+      name: lastLoadedFileName ?? loadedConfigSummary?.name ?? "Config loaded",
+      savedAt,
+      version,
+    };
+  });
+
   const handleUpload = async (files: File[]) => {
     const [file] = files;
     if (!file) return;
@@ -72,8 +157,9 @@
   };
 
   const handleRemove = () => {
-    bindingHandlers.removeFile(0);
-    bindingHandlers.writeSelectedConfig(null);
+    if (parsedFiles.length > 0) {
+      bindingHandlers.removeFile(0);
+    }
     bindings.error = "";
     resetPreviewState();
   };
@@ -84,39 +170,108 @@
       return;
     }
 
+    lastLoadedFileName = previewFile?.name ?? lastLoadedFileName;
+    loadedConfigSummary = {
+      name: lastLoadedFileName ?? previewFile?.name ?? "Config loaded",
+      savedAt: previewSavedAt,
+      version: previewVersion,
+    };
     bindingHandlers.writeSelectedConfig(previewText);
+
+    if (parsedFiles.length > 0) {
+      bindingHandlers.removeFile(0);
+    }
+
+    bindings.error = "";
+    resetPreviewState();
+    managerOpen = false;
   };
 </script>
 
 <div class="space-y-6">
-  <div class="flex w-full flex-col gap-6">
-    <Tabs.Root value="find">
-      <Tabs.List>
-        <Tabs.Trigger value="find">Browse Configs</Tabs.Trigger>
-        <Tabs.Trigger value="save">Save Config</Tabs.Trigger>
-      </Tabs.List>
-
-      <Tabs.Content value="find">
-        <BrowseConfigsPanel
-          file={previewFile}
-          rawContents={previewText}
-          parsedContents={previewJson}
-          error={bindings.error}
-          maxFiles={maxFiles}
-          onUpload={handleUpload}
-          onFileRejected={bindingHandlers.handleFileRejected}
-          onRemove={handleRemove}
-          onLoad={handleLoadConfig}
-        />
-      </Tabs.Content>
-
-      <Tabs.Content value="save">
-        <SaveConfigPanel>
-          <p class="text-sm text-zinc-500 dark:text-zinc-400">
-            TBD – hook into notebook persistence.
+  {#if managerOpen}
+    <div class="space-y-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            Manage Configs
           </p>
-        </SaveConfigPanel>
-      </Tabs.Content>
-    </Tabs.Root>
-  </div>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">
+            Load a JSON config or prepare a notebook save.
+          </p>
+        </div>
+        <Button variant="ghost" onclick={() => (managerOpen = false)}>
+          Close
+        </Button>
+      </div>
+
+      <Tabs.Root bind:value={activeTab}>
+        <Tabs.List>
+          <Tabs.Trigger value="find">Browse Configs</Tabs.Trigger>
+          <Tabs.Trigger value="save">Save Config</Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="find">
+          <BrowseConfigsPanel
+            file={previewFile}
+            rawContents={previewText}
+            parsedContents={previewJson}
+            savedAtLabel={previewSavedAt}
+            versionLabel={previewVersion}
+            error={bindings.error}
+            maxFiles={maxFiles}
+            onUpload={handleUpload}
+            onFileRejected={bindingHandlers.handleFileRejected}
+            onRemove={handleRemove}
+            onLoad={handleLoadConfig}
+          />
+        </Tabs.Content>
+
+        <Tabs.Content value="save">
+          <SaveConfigPanel>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400">
+              TBD – hook into notebook persistence.
+            </p>
+          </SaveConfigPanel>
+        </Tabs.Content>
+      </Tabs.Root>
+    </div>
+  {:else}
+    <div
+      class="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1">
+          <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            Configuration
+          </p>
+          {#if loadedConfigSummary}
+            <p class="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              {loadedConfigSummary.name}
+            </p>
+            {#if loadedConfigSummary.savedAt || loadedConfigSummary.version}
+              <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                {#if loadedConfigSummary.savedAt}
+                  <span>Saved {loadedConfigSummary.savedAt}</span>
+                {/if}
+                {#if loadedConfigSummary.version}
+                  <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
+                    v{loadedConfigSummary.version}
+                  </Badge>
+                {/if}
+              </div>
+            {/if}
+          {:else}
+            <p class="text-base text-zinc-600 dark:text-zinc-300">
+              No config loaded.
+            </p>
+          {/if}
+        </div>
+
+        <Button variant="outline" onclick={() => (managerOpen = true)}>
+          Manage Configs
+        </Button>
+      </div>
+    </div>
+  {/if}
 </div>

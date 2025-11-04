@@ -9,7 +9,7 @@ with app.setup:
     import json
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
     widget = mo.ui.anywidget(FileDropWidget(max_files=1))
     widget
@@ -40,6 +40,11 @@ def _(widget):
             )
     else:
         mo.output.append(mo.md("_No config loaded yet._"))
+    return
+
+
+@app.cell
+def _():
     return
 
 

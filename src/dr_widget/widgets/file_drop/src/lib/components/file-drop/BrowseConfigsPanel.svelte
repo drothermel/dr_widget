@@ -12,6 +12,8 @@
     file,
     rawContents,
     parsedContents,
+    savedAtLabel,
+    versionLabel,
     error,
     maxFiles,
     onUpload,
@@ -22,6 +24,8 @@
     file?: BoundFile;
     rawContents?: string;
     parsedContents?: unknown;
+    savedAtLabel?: string;
+    versionLabel?: string;
     error?: string;
     maxFiles: number;
     onUpload: FileDropZoneProps["onUpload"];
@@ -29,31 +33,6 @@
     onRemove: () => void;
     onLoad: () => void;
   }>();
-
-  const formatSavedAt = (raw?: unknown): string | undefined => {
-    if (typeof raw !== "string" || !raw) return undefined;
-    const parsed = new Date(raw);
-    if (Number.isNaN(parsed.getTime())) return raw;
-
-    return new Intl.DateTimeFormat(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(parsed);
-  };
-
-  const savedAtLabel = $derived.by(() => {
-    if (!parsedContents || typeof parsedContents !== "object") return undefined;
-    return formatSavedAt((parsedContents as Record<string, unknown>)["saved_at"]);
-  });
-
-  const versionLabel = $derived.by(() => {
-    if (!parsedContents || typeof parsedContents !== "object") return undefined;
-    const version = (parsedContents as Record<string, unknown>)["version"];
-    return typeof version === "string" && version ? version : undefined;
-  });
 </script>
 
 <Card.Root>
