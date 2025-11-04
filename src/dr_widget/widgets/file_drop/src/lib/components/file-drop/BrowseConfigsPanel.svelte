@@ -20,6 +20,7 @@
     onFileRejected,
     onRemove,
     onLoad,
+    disableLoad,
   } = $props<{
     file?: BoundFile;
     rawContents?: string;
@@ -32,6 +33,7 @@
     onFileRejected?: FileDropZoneProps["onFileRejected"];
     onRemove: () => void;
     onLoad: () => void;
+    disableLoad?: boolean;
   }>();
 </script>
 
@@ -82,9 +84,9 @@
                 variant="ghost"
                 class="w-30 bg-slate-50 shadow-sm"
                 onclick={onLoad}
-                disabled={!rawContents}
+                disabled={!rawContents || disableLoad}
               >
-                Load
+                {disableLoad ? "Loaded" : "Load"}
               </Button>
               <Button
                 variant="ghost"

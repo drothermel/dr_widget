@@ -227,13 +227,21 @@
         previewFile = {
           name: loadedConfigSummary.name ?? "Loaded config",
           size: computeByteSize(loadedConfigSummary.rawText),
-          type: "application/json",
-        };
+            type: "application/json",
+          };
+        previewText = loadedConfigSummary.rawText;
+        previewJson = loadedConfigSummary.parsed;
       }
     } else if (previewFromLoaded) {
       resetPreviewState();
       previewFromLoaded = false;
     }
+  });
+
+  const isLoadedConfigCurrent = $derived.by(() => {
+    if (!loadedConfigSummary?.rawText) return false;
+    if (!previewText) return false;
+    return previewText === loadedConfigSummary.rawText;
   });
 </script>
 
@@ -273,6 +281,7 @@
             onFileRejected={bindingHandlers.handleFileRejected}
             onRemove={handleRemove}
             onLoad={handleLoadConfig}
+            disableLoad={isLoadedConfigCurrent}
           />
         </Tabs.Content>
 
