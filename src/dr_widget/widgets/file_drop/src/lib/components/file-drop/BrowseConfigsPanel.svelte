@@ -2,6 +2,7 @@
   import * as Card from "$lib/components/ui/card/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { FileDropZone, displaySize } from "$lib/components/ui/file-drop-zone";
+  import { Badge } from "$lib/components/ui/badge/index.js";
   import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
   import type { FileDropZoneProps } from "$lib/components/ui/file-drop-zone";
   import type { BoundFile } from "$lib/hooks/use-file-bindings";
@@ -28,6 +29,31 @@
     onRemove: () => void;
     onLoad: () => void;
   }>();
+
+  const formatSavedAt = (raw?: unknown): string | undefined => {
+    if (typeof raw !== "string" || !raw) return undefined;
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return raw;
+
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(parsed);
+  };
+
+  const savedAtLabel = $derived.by(() => {
+    if (!parsedContents || typeof parsedContents !== "object") return undefined;
+    return formatSavedAt((parsedContents as Record<string, unknown>)["saved_at"]);
+  });
+
+  const versionLabel = $derived.by(() => {
+    if (!parsedContents || typeof parsedContents !== "object") return undefined;
+    const version = (parsedContents as Record<string, unknown>)["version"];
+    return typeof version === "string" && version ? version : undefined;
+  });
 </script>
 
 <Card.Root>
@@ -53,9 +79,23 @@
           >
             <div>
               <p class="font-medium text-zinc-800 dark:text-zinc-100">{file.name}</p>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                {displaySize(file.size)} · {file.type || "unknown type"}
-              </p>
+              {#if savedAtLabel || versionLabel}
+                <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  {#if savedAtLabel}
+                    <span>Saved {savedAtLabel}</span>
+                  {/if}
+                  {#if versionLabel}
+                    <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
+                      v{versionLabel}
+                    </Badge>
+                  {/if}
+                  <span>{displaySize(file.size)}</span>
+                </div>
+              {:else}
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                  {displaySize(file.size)} · {file.type || "unknown type"}
+                </p>
+              {/if}
             </div>
 
             <div class="flex gap-2">
