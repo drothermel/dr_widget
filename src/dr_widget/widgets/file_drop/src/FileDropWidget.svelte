@@ -24,7 +24,7 @@
   }
 </script>
 
-<div class="p-6">
+<div class="p-6 border border-gray-200 rounded-lg">
   <FileDropZone
     {maxFiles}
     fileCount={bindings?.file_count ?? 0}
