@@ -11,35 +11,12 @@ with app.setup:
 
 @app.cell
 def _():
-    widget = FileDropWidget(max_files=1)
+    widget = mo.ui.anywidget(FileDropWidget(max_files=1))
+    widget
     return (widget,)
 
 
-@app.cell
-def _(widget):
-    widget
-    return
-
-
-@app.cell
-def _(widget):
-    widget.max_files
-    return
-
-
-@app.cell
-def _(widget):
-    widget.file_count
-    return
-
-
-@app.cell
-def _(widget):
-    widget.files
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(widget):
     if widget.selected_config:
         try:
