@@ -15,8 +15,8 @@
         "typescript": "^5",
       },
     },
-    "src/dr_widget/widgets/file_drop": {
-      "name": "@dr-widget/file_drop",
+    "src/dr_widget/widgets/config_file_manager": {
+      "name": "@dr-widget/config-file-manager",
       "version": "0.1.0",
       "dependencies": {
         "@anywidget/svelte": "^0.1.0",
@@ -66,7 +66,7 @@
 
     "@babel/runtime": ["@babel/runtime@7.28.4", "", {}, "sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ=="],
 
-    "@dr-widget/file_drop": ["@dr-widget/file_drop@workspace:src/dr_widget/widgets/file_drop"],
+    "@dr-widget/config-file-manager": ["@dr-widget/config-file-manager@workspace:src/dr_widget/widgets/config_file_manager"],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.21.5", "", { "os": "aix", "cpu": "ppc64" }, "sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ=="],
 
