@@ -1,6 +1,6 @@
 <script>
   import { Separator } from "./lib/components/ui/separator/";
-  import FileDropWidget from "./FileDropWidget.svelte";
+  import ConfigFileManager from "./ConfigFileManager.svelte";
 
   // Simulate anywidget bindings for testing
   let bindings = $state({
@@ -28,7 +28,7 @@
       </h1>
     </div>
 
-    <FileDropWidget {bindings} max_files={1} />
+    <ConfigFileManager {bindings} max_files={1} />
 
     <div
       class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900"

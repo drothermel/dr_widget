@@ -1,5 +1,5 @@
 """Top-level package for dr_widget."""
 
-from .widgets.file_drop import FileDropWidget
+from .widgets.config_file_manager import ConfigFileManager
 
-__all__ = ["FileDropWidget"]
+__all__ = ["ConfigFileManager"]

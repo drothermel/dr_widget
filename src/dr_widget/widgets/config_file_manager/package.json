@@ -1,5 +1,5 @@
 {
-  "name": "@dr-widget/file_drop",
+  "name": "@dr-widget/config-file-manager",
   "version": "0.1.0",
   "private": true,
   "type": "module",

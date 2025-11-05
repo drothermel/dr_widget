@@ -5,13 +5,13 @@ app = marimo.App(width="columns")
 
 with app.setup:
     import marimo as mo
-    from dr_widget import FileDropWidget
+    from dr_widget import ConfigFileManager
     import json
 
 
 @app.cell(hide_code=True)
 def _():
-    widget = mo.ui.anywidget(FileDropWidget(max_files=1))
+    widget = mo.ui.anywidget(ConfigFileManager(max_files=1))
     widget
     return (widget,)
 

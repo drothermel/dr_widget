@@ -13,10 +13,10 @@ Traitlets mirror the JSON passed between Python and Svelte:
 When you add new traits, document them in `docs/architecture.md` and keep the hook resilient to missing data (defensive parsing, defaults).
 
 ## Build, Test, and Development Commands
-Use Bun for all JS build tooling: `bun run dev:file-drop` launches the file-drop widget dev server with hot reload, and `bun run build:file-drop` produces the optimized bundle. `bun run build` aggregates all widget builds and is what CI should call. For Python packaging, run `uv build` to emit wheels/sdists and verify the widget bundle is embedded correctly.
+Use Bun for all JS build tooling: `bun run dev:config-file-manager` launches the Config File Manager dev server with hot reload, and `bun run build:config-file-manager` produces the optimized bundle. `bun run build` aggregates all widget builds and is what CI should call. For Python packaging, run `uv build` to emit wheels/sdists and verify the widget bundle is embedded correctly.
 
 ## Coding Style & Naming Conventions
-Follow Prettier defaults (two-space indent, single quotes allowed) for TypeScript/Svelte; run `bunx prettier --write src/dr_widget/widgets/file_drop/src` before submitting. Svelte components stay in PascalCase (`FileDropWidget.svelte`), directories use kebab-case, and shared utilities adopt camelCase exports. Python modules under `src/dr_widget` follow PEP 8 snake_case naming and 4-space indents. Keep Tailwind classes sorted logically rather than alphabetically.
+Follow Prettier defaults (two-space indent, single quotes allowed) for TypeScript/Svelte; run `bunx prettier --write src/dr_widget/widgets/config_file_manager/src` before submitting. Svelte components stay in PascalCase (`ConfigFileManager.svelte`), directories use kebab-case, and shared utilities adopt camelCase exports. Python modules under `src/dr_widget` follow PEP 8 snake_case naming and 4-space indents. Keep Tailwind classes sorted logically rather than alphabetically.
 
 ## UI Component Catalog
 - `src/lib/hooks/use-file-bindings.ts` – centralizes AnyWidget binding logic (`read/write`, dedupe, upload/remove).
@@ -25,7 +25,7 @@ Follow Prettier defaults (two-space indent, single quotes allowed) for TypeScrip
 Import from `$lib/...` so Vite aliases resolve correctly. Whenever you scaffold new shadcn components, stage the files (remember `.gitignore` no longer hides `lib/`).
 
 ## Testing Guidelines
-Automated tests are not yet configured. When adding features, include manual verification steps in the PR and consider scaffolding Vitest suites under `src/dr_widget/widgets/file_drop/src/lib/__tests__`. Snapshotting rendered widgets via `@testing-library/svelte` is preferred once the harness lands; target coverage for new logic should be 80%+. Until then, confirm drag/drop flows in the dev server across Chrome and Firefox before submitting.
+Automated tests are not yet configured. When adding features, include manual verification steps in the PR and consider scaffolding Vitest suites under `src/dr_widget/widgets/config_file_manager/src/lib/__tests__`. Snapshotting rendered widgets via `@testing-library/svelte` is preferred once the harness lands; target coverage for new logic should be 80%+. Until then, confirm drag/drop flows in the dev server across Chrome and Firefox before submitting.
 
 ## Commit & Pull Request Guidelines
 Recent history favors short, imperative commit subjects (e.g., “fix build commands”) without trailing periods; continue that style and group logically related changes together. Every PR should summarize the user-visible impact, list manual test steps, and link relevant GitHub issues. Include before/after screenshots or GIFs when UI output changes, and keep PRs scoped to a single widget or module so reviewers can respond quickly.
@@ -33,6 +33,6 @@ Recent history favors short, imperative commit subjects (e.g., “fix build comm
 ## Contribution Checklist
 1. `bun run build` and `npx svelte-check` report no errors.
 2. `uv build` succeeds and the wheel contains updated `static/` assets (`unzip -l dist/*.whl` if unsure).
-3. Notebook demo still works (`marimo run notebooks/file_widget.py`).
+3. Notebook demo still works (`marimo run notebooks/config_file_manager_widget.py`).
 4. Docs touched by your change are updated (README, `docs/` references, or this file).
 5. Traitlet contracts remain backward compatible; call out incompatible changes in the PR description.

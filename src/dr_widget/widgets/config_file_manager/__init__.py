@@ -1,4 +1,4 @@
-"""AnyWidget bindings for the file drop widget."""
+"""AnyWidget bindings for the config file manager widget."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from pathlib import Path
 import anywidget
 import traitlets
 
-__all__ = ["FileDropWidget"]
+__all__ = ["ConfigFileManager"]
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
 
-class FileDropWidget(anywidget.AnyWidget):
-    """File drop zone widget for notebooks."""
+class ConfigFileManager(anywidget.AnyWidget):
+    """Config file manager widget for notebooks."""
 
     # AnyWidget expects module references pointing at the built assets on disk.
     _esm = _STATIC_DIR / "index.js"

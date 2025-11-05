@@ -4,11 +4,11 @@
   "workspaces": ["src/dr_widget/widgets/*"],
   "scripts": {
     "build": "bun run build:all",
-    "build:all": "bun run build:file-drop",
-    "build:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite build",
-    "dev": "bun run dev:file-drop",
-    "dev:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite dev",
-    "preview:file-drop": "bun --cwd src/dr_widget/widgets/file_drop vite preview"
+    "build:all": "bun run build:config-file-manager",
+    "build:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite build",
+    "dev": "bun run dev:config-file-manager",
+    "dev:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite dev",
+    "preview:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite preview"
   },
   "module": "index.ts",
   "type": "module",

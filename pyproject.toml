@@ -1,6 +1,6 @@
 [project]
 name = "dr-widget"
-version = "0.1.0"
+version = "0.1.1"
 description = "Widgets to use with marimo notebooks"
 readme = "README.md"
 authors = [
@@ -18,8 +18,8 @@ requires = ["uv_build>=0.9.7,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-source-include = ["src/dr_widget/widgets/file_drop/static/**"]
+source-include = ["src/dr_widget/widgets/config_file_manager/static/**"]
 source-exclude = [
-    "src/dr_widget/widgets/file_drop/node_modules",
-    "src/dr_widget/widgets/file_drop/node_modules/**",
+    "src/dr_widget/widgets/config_file_manager/node_modules",
+    "src/dr_widget/widgets/config_file_manager/node_modules/**",
 ]

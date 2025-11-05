@@ -1,5 +1,5 @@
 """Widget exports for dr_widget."""
 
-from .file_drop import FileDropWidget
+from .config_file_manager import ConfigFileManager
 
-__all__ = ["FileDropWidget"]
+__all__ = ["ConfigFileManager"]
