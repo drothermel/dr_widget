@@ -160,6 +160,65 @@
     return undefined;
   });
 
+  const readSelectedConfigObject = () => {
+    const raw = bindings.selected_config;
+    if (!raw) return undefined;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return undefined;
+    }
+
+    return undefined;
+  };
+
+  const selectedConfigVersion = $derived.by(() => {
+    const parsed = readSelectedConfigObject();
+    if (!parsed) return "";
+
+    const value = parsed["version"];
+    if (typeof value === "string" && value) return value;
+    if (typeof value === "number") return String(value);
+    return "";
+  });
+
+  const canEditSelectedConfigVersion = $derived.by(() => Boolean(readSelectedConfigObject()));
+
+  const handleSelectedVersionChange = (nextVersion: string) => {
+    const raw = bindings.selected_config;
+    if (!raw) return;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return;
+    }
+
+    const config = parsed as Record<string, unknown>;
+
+    if (nextVersion.trim().length === 0) {
+      delete config.version;
+    } else {
+      config.version = nextVersion;
+    }
+
+    const serialized = JSON.stringify(parsed, null, 2);
+    if (serialized === raw) {
+      return;
+    }
+
+    bindingHandlers.writeSelectedConfig(serialized);
+  };
+
   $effect(() => {
     if (!managerOpen) return;
     activeTab = isDirty ? "save" : "find";
@@ -384,8 +443,11 @@
             rawConfig={bindings.selected_config}
             defaultFileName={loadedConfigPath ?? lastLoadedFileName ?? "config.json"}
             dirty={isDirty}
+            currentVersion={selectedConfigVersion}
+            canEditVersion={canEditSelectedConfigVersion}
             onSaveSuccess={handleSaveSuccess}
             onSaveError={handleSaveError}
+            onVersionChange={handleSelectedVersionChange}
           />
         </Tabs.Content>
       </Tabs.Root>
