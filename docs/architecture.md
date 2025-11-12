@@ -5,7 +5,7 @@ This project glues together three layers:
 1. **Python package (`src/dr_widget`)**
    - Exposes AnyWidget subclasses (e.g., `ConfigFileManager`) that notebooks instantiate.
    - Ship the compiled frontend bundle by pointing `_esm`/`_css` at files under `static/`.  
-   - Traitlets (`files`, `file_count`, `error`, `max_files`, `selected_config`) are the single source of truth for state moving between Python and Svelte. `selected_config` mirrors the most recently loaded config’s JSON payload so notebook code can consume it immediately.
+   - Traitlets (`files`, `file_count`, `error`, `selected_config`) are the single source of truth for state moving between Python and Svelte. `selected_config` mirrors the most recently loaded config’s JSON payload so notebook code can consume it immediately.
 
 2. **Widget workspace (`src/dr_widget/widgets/config_file_manager`)**
    - Bun workspace with its own `package.json`, Vite config, and Tailwind CSS.
@@ -22,7 +22,7 @@ This project glues together three layers:
 
 ```text
 Marimo Notebook (Python)
-        │ traitlets (files, max_files, …)
+        │ traitlets (files, …)
         ▼
 ConfigFileManager (AnyWidget)  ── embeds ──▶  static/index.js (Svelte bundle)
         │                                │

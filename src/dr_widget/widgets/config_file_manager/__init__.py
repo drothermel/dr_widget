@@ -22,5 +22,4 @@ class ConfigFileManager(anywidget.AnyWidget):
     files = traitlets.Unicode("[]").tag(sync=True)
     file_count = traitlets.Int(0).tag(sync=True)
     error = traitlets.Unicode("").tag(sync=True)
-    max_files = traitlets.Int(5, min=1).tag(sync=True)
     selected_config = traitlets.Unicode("").tag(sync=True)
