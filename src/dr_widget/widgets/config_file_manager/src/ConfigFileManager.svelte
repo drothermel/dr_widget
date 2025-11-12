@@ -456,6 +456,7 @@
         <Tabs.Content value="save">
           <SaveConfigPanel
             rawConfig={bindings.selected_config}
+            baselineConfig={loadedConfigBaselineParsed}
             defaultFileName={loadedConfigPath ?? lastLoadedFileName ?? "config.json"}
             dirty={isDirty}
             currentVersion={selectedConfigVersion}

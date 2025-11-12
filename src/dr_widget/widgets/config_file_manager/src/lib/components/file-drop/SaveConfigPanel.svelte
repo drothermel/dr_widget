@@ -33,6 +33,7 @@
 
   const {
     rawConfig,
+    baselineConfig,
     defaultFileName = "config.json",
     dirty = false,
     currentVersion = "",
@@ -42,6 +43,7 @@
     onVersionChange,
   } = $props<{
     rawConfig?: string;
+    baselineConfig?: unknown;
     defaultFileName?: string;
     dirty?: boolean;
     currentVersion?: string;
@@ -260,6 +262,11 @@
       <p class="text-sm text-red-500 dark:text-red-400">{saveError}</p>
     {/if}
 
-    <ConfigViewerPanel data={parsedConfig} rawJson={rawConfig} />
+    <ConfigViewerPanel
+      data={parsedConfig}
+      rawJson={rawConfig}
+      baselineData={baselineConfig}
+      {dirty}
+    />
   </Card.Content>
 </Card.Root>
