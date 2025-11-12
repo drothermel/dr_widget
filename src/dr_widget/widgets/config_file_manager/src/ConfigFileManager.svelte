@@ -69,6 +69,7 @@
   let previewFromLoaded = $state(false);
   let loadedConfigRaw = $state<string | undefined>(undefined);
   let loadedConfigPath = $state<string | undefined>(undefined);
+  let loadedConfigBaselineParsed = $state<unknown | undefined>(undefined);
   let isDirty = $state(false);
 
   const handleSaveSuccess = ({
@@ -281,6 +282,20 @@
     }
   });
 
+  $effect(() => {
+    const raw = loadedConfigRaw;
+    if (!raw) {
+      loadedConfigBaselineParsed = undefined;
+      return;
+    }
+
+    try {
+      loadedConfigBaselineParsed = JSON.parse(raw);
+    } catch {
+      loadedConfigBaselineParsed = undefined;
+    }
+  });
+
   const handleUpload = async (files: File[]) => {
     const [file] = files;
     if (!file) return;
@@ -424,6 +439,7 @@
             file={previewFile}
             rawContents={previewText}
             parsedContents={previewJson}
+            baselineContents={loadedConfigBaselineParsed}
             savedAtLabel={previewSavedAt}
             versionLabel={previewVersion}
             dirty={isDirty}
@@ -458,6 +474,7 @@
       versionLabel={loadedConfigSummary.version}
       rawContents={loadedConfigSummary.rawText}
       parsedContents={loadedConfigSummary.parsed}
+      baselineContents={loadedConfigBaselineParsed}
       dirty={isDirty}
       onClose={() => (showLoadedPreview = false)}
       onManage={() => {
