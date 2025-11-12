@@ -1,4 +1,6 @@
 <script lang="ts">
+  import SimpleJsonViewer from './SimpleJsonViewer.svelte';
+
   type Primitive = string | number | boolean | null | undefined;
 
   const {
@@ -109,7 +111,7 @@
             <span class="_jsonSep">:</span>
           {/if}
           {#if getType((data as Record<string, unknown>)[key]) === "object"}
-            <svelte:self
+            <SimpleJsonViewer
               data={(data as Record<string, unknown>)[key]}
               {depth}
               currentDepth={currentDepth + 1}
