@@ -1,6 +1,7 @@
 # Build
-**static/index.js
-**static/style.css
+**/static/index.js
+**/static/style.css
+**/static/vite.svg
 dist/
 
 # Bun
