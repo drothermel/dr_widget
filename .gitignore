@@ -1,3 +1,8 @@
+# Build
+**static/index.js
+**static/style.css
+dist/
+
 # Bun
 **/node_modules/
 .bun/
