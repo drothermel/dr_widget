@@ -34,14 +34,20 @@
     rawConfig,
     defaultFileName = "config.json",
     dirty = false,
+    currentVersion = "",
+    canEditVersion = false,
     onSaveSuccess,
     onSaveError,
+    onVersionChange,
   } = $props<{
     rawConfig?: string;
     defaultFileName?: string;
     dirty?: boolean;
+    currentVersion?: string;
+    canEditVersion?: boolean;
     onSaveSuccess?: (result: SaveResult) => void;
     onSaveError?: (message: string) => void;
+    onVersionChange?: (version: string) => void;
   }>();
 
   let fileHandle = $state<BrowserFileHandle | null>(null);
@@ -49,6 +55,7 @@
   let lastSavedMessage = $state("");
   let saveError = $state("");
   let saving = $state(false);
+  let versionInput = $state(currentVersion);
 
   const fsWindow: FileSystemAccessWindow | undefined =
     typeof window !== "undefined"
@@ -57,11 +64,16 @@
 
   const supportsFileSystemAccess = Boolean(fsWindow?.showSaveFilePicker);
   const inputId = `save-config-${Math.random().toString(36).slice(2)}`;
+  const versionInputId = `config-version-${Math.random().toString(36).slice(2)}`;
 
   $effect(() => {
     if (!fileHandle && defaultFileName && !chosenFileName) {
       chosenFileName = defaultFileName;
     }
+  });
+
+  $effect(() => {
+    versionInput = currentVersion ?? "";
   });
 
   const buildPickerOptions = (): SaveFilePickerOptions => {
@@ -175,6 +187,24 @@
     </Card.Description>
   </Card.Header>
   <Card.Content class="space-y-4">
+    <div class="space-y-2">
+      <label class="text-sm font-medium text-zinc-600 dark:text-zinc-300" for={versionInputId}>
+        Version
+      </label>
+      <input
+        class="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-70 dark:border-zinc-700 dark:bg-zinc-900"
+        id={versionInputId}
+        value={versionInput}
+        placeholder="e.g. 1.0.0"
+        disabled={!canEditVersion || !rawConfig}
+        oninput={(event) => {
+          const nextValue = (event.target as HTMLInputElement).value;
+          versionInput = nextValue;
+          onVersionChange?.(nextValue);
+        }}
+      />
+    </div>
+
     <div class="space-y-2">
       <label class="text-sm font-medium text-zinc-600 dark:text-zinc-300" for={inputId}>File name</label>
       <input
