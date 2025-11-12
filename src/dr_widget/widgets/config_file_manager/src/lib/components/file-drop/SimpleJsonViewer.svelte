@@ -214,6 +214,12 @@
       {#each items as key, idx}
         {@const meta = diffMeta[key]}
         {#if meta}
+          {@const currentValue = meta.currentValue}
+          {@const previousValue = meta.previousValue}
+          {@const valueType = getType(
+            meta.hasCurrent ? currentValue : previousValue,
+          )}
+
           <li class:diff-removed-row={meta.status === "removed"}>
             {#if !isArray}
               <span
@@ -224,12 +230,6 @@
               </span>
               <span class="_jsonSep">:</span>
             {/if}
-
-            {@const currentValue = meta.currentValue}
-            {@const previousValue = meta.previousValue}
-            {@const valueType = getType(
-              meta.hasCurrent ? currentValue : previousValue,
-            )}
 
             {#if (meta.hasCurrent ? getType(currentValue) : getType(previousValue)) ===
             "object"}
