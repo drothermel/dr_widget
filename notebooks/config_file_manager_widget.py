@@ -11,7 +11,7 @@ with app.setup:
 
 @app.cell(hide_code=True)
 def _():
-    widget = mo.ui.anywidget(ConfigFileManager(max_files=1))
+    widget = mo.ui.anywidget(ConfigFileManager())
     widget
     return (widget,)
 

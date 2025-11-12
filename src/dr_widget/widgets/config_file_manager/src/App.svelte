@@ -7,7 +7,6 @@
     files: "",
     file_count: 0,
     error: "",
-    max_files: 1,
   });
 
   // Watch for changes to display them
@@ -28,7 +27,7 @@
       </h1>
     </div>
 
-    <ConfigFileManager {bindings} max_files={1} />
+    <ConfigFileManager {bindings} />
 
     <div
       class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-6 dark:border-zinc-700 dark:bg-zinc-900"

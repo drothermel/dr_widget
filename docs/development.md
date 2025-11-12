@@ -22,7 +22,7 @@ The widget uses Tailwind v4, shadcn-svelte components, and the helper `use-file-
 - `uv build` – Creates `dist/*.whl` and `dist/*.tar.gz` that include the latest `static/` assets.
 - `marimo run notebooks/config_file_manager_widget.py` – Runs the notebook demo inside the repo. This is the quickest integration test.
 
-Traitlet updates (`files`, `file_count`, `error`, `max_files`) automatically sync between Python and Svelte; use the notebook to validate that syncing works end-to-end.
+Traitlet updates (`files`, `file_count`, `error`) automatically sync between Python and Svelte; use the notebook to validate that syncing works end-to-end.
 
 ## 4. Adding a New Widget
 

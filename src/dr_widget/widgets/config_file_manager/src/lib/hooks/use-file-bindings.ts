@@ -10,7 +10,6 @@ export type FileBinding = {
   file_count: number;
   files: string;
   error: string;
-  max_files?: number;
   selected_config?: string | null;
 };
 
@@ -19,28 +18,32 @@ type RejectHandler = NonNullable<FileDropZoneProps["onFileRejected"]>;
 
 export function createFileBindingHandlers({
   bindings,
-  maxFilesProp,
+  maxFiles,
 }: {
   bindings: FileBinding;
-  maxFilesProp?: number;
+  maxFiles?: number;
 }) {
+  const maxFileCount = Number.isFinite(maxFiles) ? maxFiles : undefined;
+
   const normalizeFiles = (files: unknown): BoundFile[] => {
     if (!Array.isArray(files)) return [];
 
-    return files
+    const validItems = files
       .filter(
         (item) =>
           item &&
           typeof item.name === "string" &&
           typeof item.size === "number" &&
-          typeof item.type === "string"
+          typeof item.type === "string",
       )
-      .slice(0, 1)
       .map((item) => ({
         name: item.name,
         size: item.size,
         type: item.type,
       }));
+
+    const limit = maxFileCount ?? validItems.length;
+    return validItems.slice(0, limit);
   };
 
   const readBoundFiles = (): BoundFile[] => {
@@ -59,19 +62,18 @@ export function createFileBindingHandlers({
     bindings.file_count = normalized.length;
   };
 
-  const maxFiles = (): number => maxFilesProp ?? bindings?.max_files ?? 5;
-
   const handleUpload: UploadHandler = async (files) => {
-    const [first] = files;
-    if (!first) return;
+    const nextFiles = files
+      .slice(0, maxFileCount ?? files.length)
+      .map((file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      }));
 
-    const nextFile = {
-      name: first.name,
-      size: first.size,
-      type: first.type,
-    };
+    if (nextFiles.length === 0) return;
 
-    writeBoundFiles([nextFile]);
+    writeBoundFiles(nextFiles);
     bindings.error = "";
   };
 
@@ -97,7 +99,6 @@ export function createFileBindingHandlers({
     bindings,
     readBoundFiles,
     writeBoundFiles,
-    maxFiles,
     handleUpload,
     handleFileRejected,
     removeFile,

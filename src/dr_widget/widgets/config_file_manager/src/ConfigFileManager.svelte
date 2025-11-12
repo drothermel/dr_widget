@@ -12,19 +12,18 @@
     type FileBinding,
   } from "$lib/hooks/use-file-bindings";
 
-  const { bindings, maxFiles: maxFilesProp } = $props<{
+  const { bindings } = $props<{
     bindings: FileBinding;
-    maxFiles?: number;
   }>();
+
+  const maxFiles = 1;
 
   const bindingHandlers = createFileBindingHandlers({
     bindings,
-    maxFilesProp,
+    maxFiles,
   });
 
   const parsedFiles = $derived(bindingHandlers.readBoundFiles());
-
-  const maxFiles = 1;
 
   const formatSavedAt = (value: unknown): string | undefined => {
     if (typeof value === "string" && value) {

@@ -8,7 +8,6 @@ Traitlets mirror the JSON passed between Python and Svelte:
 - `files` – JSON string of `{ name, size, type }[]`; the `use-file-bindings` hook keeps this in sync.
 - `file_count` – integer derived from `files.length`; stay read-only unless you update the JSON.
 - `error` – short user-facing message; clear it when the UI recovers.
-- `max_files` – optional upload limit. Notebook code sets it via traitlets; Svelte may override with a direct `maxFiles` prop for local preview. Prefer updating the traitlet so both notebook and preview stay aligned.
 
 When you add new traits, document them in `docs/architecture.md` and keep the hook resilient to missing data (defensive parsing, defaults).
 
