@@ -2,6 +2,7 @@
   import * as Card from "$lib/components/ui/card/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
+  import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
 
   type SaveResult = {
     fileName?: string;
@@ -56,6 +57,15 @@
   let saveError = $state("");
   let saving = $state(false);
   let versionInput = $state(currentVersion);
+  const parsedConfig = $derived.by(() => {
+    if (!rawConfig) return undefined;
+
+    try {
+      return JSON.parse(rawConfig);
+    } catch {
+      return undefined;
+    }
+  });
 
   const fsWindow: FileSystemAccessWindow | undefined =
     typeof window !== "undefined"
@@ -249,5 +259,7 @@
     {#if saveError}
       <p class="text-sm text-red-500 dark:text-red-400">{saveError}</p>
     {/if}
+
+    <ConfigViewerPanel data={parsedConfig} rawJson={rawConfig} />
   </Card.Content>
 </Card.Root>
