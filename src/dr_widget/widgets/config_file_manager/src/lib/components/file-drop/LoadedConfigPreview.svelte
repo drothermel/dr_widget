@@ -9,6 +9,7 @@
     versionLabel,
     rawContents,
     parsedContents,
+    baselineContents,
     dirty,
     onClose,
     onManage,
@@ -18,6 +19,7 @@
     versionLabel?: string;
     rawContents?: string;
     parsedContents?: unknown;
+    baselineContents?: unknown;
     dirty?: boolean;
     onClose: () => void;
     onManage?: () => void;
@@ -57,5 +59,10 @@
     </div>
   </div>
 
-  <ConfigViewerPanel data={parsedContents} rawJson={rawContents} />
+  <ConfigViewerPanel
+    data={parsedContents}
+    rawJson={rawContents}
+    baselineData={baselineContents}
+    {dirty}
+  />
 </div>

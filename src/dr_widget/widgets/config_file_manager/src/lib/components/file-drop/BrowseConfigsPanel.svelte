@@ -12,6 +12,7 @@
     file,
     rawContents,
     parsedContents,
+    baselineContents,
     savedAtLabel,
     versionLabel,
     dirty,
@@ -26,6 +27,7 @@
     file?: BoundFile;
     rawContents?: string;
     parsedContents?: unknown;
+    baselineContents?: unknown;
     savedAtLabel?: string;
     versionLabel?: string;
     dirty?: boolean;
@@ -107,7 +109,12 @@
             </div>
           </div>
 
-          <ConfigViewerPanel data={parsedContents} rawJson={rawContents} />
+          <ConfigViewerPanel
+            data={parsedContents}
+            rawJson={rawContents}
+            baselineData={baselineContents}
+            {dirty}
+          />
         </div>
       {/if}
 

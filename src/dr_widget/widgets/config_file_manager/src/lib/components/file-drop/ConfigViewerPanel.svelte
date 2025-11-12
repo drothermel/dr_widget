@@ -7,9 +7,12 @@
 
   type ViewerMode = "simple" | "complex";
 
-  const { data, rawJson, initialMode = "simple" } = $props<{
+  const { data, rawJson, baselineData, dirty = false, initialMode = "simple" } =
+    $props<{
     data?: unknown;
     rawJson?: string;
+    baselineData?: unknown;
+    dirty?: boolean;
     initialMode?: ViewerMode;
   }>();
 
@@ -93,13 +96,31 @@
       <div
         class="viewer-shell rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
-        <SimpleJsonViewer data={data} depth={3} />
+        <SimpleJsonViewer
+          data={data}
+          baseline={dirty ? baselineData : undefined}
+          {dirty}
+          depth={3}
+        />
       </div>
     {:else}
       <div
         class="rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         <ComplexJsonViewer data={data} />
+      </div>
+    {/if}
+
+    {#if dirty && baselineData}
+      <div class="diff-legend" role="note">
+        <span class="legend-item">
+          <span class="legend-swatch legend-swatch-added"></span>
+          New value
+        </span>
+        <span class="legend-item">
+          <span class="legend-swatch legend-swatch-removed"></span>
+          Removed value
+        </span>
       </div>
     {/if}
 
@@ -164,8 +185,48 @@
     color: #3f3f46;
   }
 
+  .diff-legend {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.7rem;
+    color: #71717a;
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .legend-swatch {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 0.25rem;
+  }
+
+  .legend-swatch-added {
+    background: rgba(34, 197, 94, 0.2);
+  }
+
+  .legend-swatch-removed {
+    background: rgba(239, 68, 68, 0.25);
+  }
+
   :global(.dark) .viewer-shell {
     color: #e4e4e7;
     background: rgba(24, 24, 27, 0.8);
+  }
+
+  :global(.dark) .diff-legend {
+    color: #a1a1aa;
+  }
+
+  :global(.dark) .legend-swatch-added {
+    background: rgba(34, 197, 94, 0.3);
+  }
+
+  :global(.dark) .legend-swatch-removed {
+    background: rgba(239, 68, 68, 0.35);
   }
 </style>
