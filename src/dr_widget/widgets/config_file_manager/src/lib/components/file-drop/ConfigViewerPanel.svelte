@@ -95,14 +95,14 @@
           Inspect the selected file in a formatted tree.
         </Card.Description>
         {#if hasWrappedView}
-          <div class="mt-2 flex rounded-md border border-zinc-200 bg-white p-0.5 text-xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div class="mt-2 inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-xs dark:border-zinc-800 dark:bg-zinc-900">
             <button
               type="button"
               class="viewer-toggle"
               class:viewer-toggle-active={source === "data"}
               onclick={() => switchSource("data")}
             >
-              Editable data
+              Editable Data
             </button>
             <button
               type="button"
@@ -110,7 +110,7 @@
               class:viewer-toggle-active={source === "wrapped"}
               onclick={() => switchSource("wrapped")}
             >
-              Saved payload
+              Saved Payload
             </button>
           </div>
         {/if}
