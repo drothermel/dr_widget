@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
+  import { buildWrappedPayload } from "$lib/utils/config-format";
   import type { FileBinding } from "$lib/hooks/use-file-bindings";
 
   type SaveResult = {
@@ -131,6 +132,24 @@
     } catch {
       return undefined;
     }
+  });
+
+  const wrappedPreview = $derived.by(() => {
+    if (!parsedConfig || typeof parsedConfig !== "object" || Array.isArray(parsedConfig)) {
+      return undefined;
+    }
+
+    const versionCandidate = versionInput?.trim() || currentVersion?.trim() || undefined;
+    const payload = buildWrappedPayload({
+      data: parsedConfig as Record<string, unknown>,
+      version: versionCandidate,
+      savedAt: undefined,
+    });
+
+    return {
+      json: JSON.stringify(payload, null, 2),
+      data: payload,
+    };
   });
 
   const fsWindow: FileSystemAccessWindow | undefined =
@@ -365,6 +384,8 @@
       rawJson={rawConfig}
       baselineData={baselineConfig}
       {dirty}
+      wrappedJson={wrappedPreview?.json}
+      wrappedData={wrappedPreview?.data}
     />
   </Card.Content>
 </Card.Root>

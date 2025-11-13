@@ -13,6 +13,8 @@
     dirty,
     onClose,
     onManage,
+    wrappedContents,
+    wrappedParsed,
   } = $props<{
     fileName?: string;
     savedAtLabel?: string;
@@ -23,6 +25,8 @@
     dirty?: boolean;
     onClose: () => void;
     onManage?: () => void;
+    wrappedContents?: string;
+    wrappedParsed?: unknown;
   }>();
 </script>
 
@@ -64,5 +68,7 @@
     rawJson={rawContents}
     baselineData={baselineContents}
     {dirty}
+    wrappedJson={wrappedContents}
+    wrappedData={wrappedParsed}
   />
 </div>
