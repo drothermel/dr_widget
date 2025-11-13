@@ -10,7 +10,10 @@ export type FileBinding = {
   file_count: number;
   files: string;
   error: string;
-  selected_config?: string | null;
+  current_state?: string | null;
+  baseline_state?: string | null;
+  config_file?: string | null;
+  version?: string | null;
 };
 
 type UploadHandler = FileDropZoneProps["onUpload"];
@@ -19,11 +22,17 @@ type RejectHandler = NonNullable<FileDropZoneProps["onFileRejected"]>;
 export function createFileBindingHandlers({
   bindings,
   maxFiles,
-  writeCallback,
+  writeCurrentStateCallback,
+  writeBaselineStateCallback,
+  writeVersionCallback,
+  writeConfigFileCallback,
 }: {
   bindings: FileBinding;
   maxFiles?: number;
-  writeCallback?: (contents?: string | null) => void;
+  writeCurrentStateCallback?: (contents?: string | null) => void;
+  writeBaselineStateCallback?: (contents?: string | null) => void;
+  writeVersionCallback?: (version?: string | null) => void;
+  writeConfigFileCallback?: (path?: string | null) => void;
 }) {
   const maxFileCount = Number.isFinite(maxFiles) ? maxFiles : undefined;
 
@@ -93,9 +102,24 @@ export function createFileBindingHandlers({
     }
   };
 
-  const writeSelectedConfig = (contents: string | null | undefined): void => {
-    writeCallback?.(contents);
-    bindings.selected_config = contents ?? "";
+  const writeCurrentState = (contents: string | null | undefined): void => {
+    writeCurrentStateCallback?.(contents);
+    bindings.current_state = contents ?? "";
+  };
+
+  const writeBaselineState = (contents: string | null | undefined): void => {
+    writeBaselineStateCallback?.(contents);
+    bindings.baseline_state = contents ?? "";
+  };
+
+  const writeVersion = (version: string | null | undefined): void => {
+    writeVersionCallback?.(version);
+    bindings.version = version ?? "";
+  };
+
+  const writeConfigFile = (path: string | null | undefined): void => {
+    writeConfigFileCallback?.(path);
+    bindings.config_file = path ?? "";
   };
 
   const writeError = (error: string): void => {
@@ -109,7 +133,10 @@ export function createFileBindingHandlers({
     handleUpload,
     handleFileRejected,
     removeFile,
-    writeSelectedConfig,
+    writeCurrentState,
+    writeBaselineState,
+    writeVersion,
+    writeConfigFile,
     writeError,
   };
 }
