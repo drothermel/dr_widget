@@ -4,10 +4,12 @@ __generated_with = "0.17.6"
 app = marimo.App(width="columns")
 
 with app.setup:
-    import marimo as mo
-    from dr_widget import ConfigFileManager
     import json
     import time
+
+    import marimo as mo
+
+    from dr_widget import ConfigFileManager
 
 
 @app.cell(hide_code=True)
@@ -45,7 +47,7 @@ def _(he_switch, widget):
                 ]
             )
         )
-        print("(short 5sec sleep to read the message before reacitve re-run)")
+        print("(short 5sec sleep to read the message before reactive re-run)")
         time.sleep(5)
     else:
         mo.output.append(mo.md(f"No update needed, `{_field}`: `{he_switch.value}`"))
