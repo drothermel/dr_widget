@@ -31,3 +31,11 @@ dev = [
     "ruff>=0.14.4",
     "watchdog>=6.0.0",
 ]
+
+[tool.ruff]
+include = ["src/**/*.py",  "notebooks/**/*.py"]
+exclude = ["tests/**/*.py", "dist/", "docs/"]
+line-length = 88
+
+[tool.basedpyright]
+typeCheckingMode = "off"
