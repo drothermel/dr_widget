@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "anywidget>=0.9.18",
     "marimo==0.17.7",
+    "pydantic>=2.12.4",
     "traitlets>=5.14.3",
 ]
 
@@ -22,4 +23,11 @@ source-include = ["src/dr_widget/widgets/config_file_manager/static/**"]
 source-exclude = [
     "src/dr_widget/widgets/config_file_manager/node_modules",
     "src/dr_widget/widgets/config_file_manager/node_modules/**",
+]
+
+[dependency-groups]
+dev = [
+    "python-lsp-server>=1.13.1",
+    "ruff>=0.14.4",
+    "watchdog>=6.0.0",
 ]
