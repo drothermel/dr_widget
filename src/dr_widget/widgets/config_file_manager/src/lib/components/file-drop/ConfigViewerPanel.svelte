@@ -166,6 +166,7 @@
           baseline={effectiveDirty ? effectiveBaseline : undefined}
           dirty={effectiveDirty}
           depth={3}
+          preserveKeyOrder={source === "wrapped"}
         />
       </div>
     {:else}

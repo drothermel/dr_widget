@@ -4,23 +4,25 @@
   type Primitive = string | number | boolean | null | undefined;
   type DiffStatus = "added" | "removed" | "changed" | "unchanged";
 
-  const {
-    data,
-    baseline,
-    dirty = false,
-    diffContext = "unchanged",
-    depth = 2,
-    currentDepth = 0,
-    isLast = true,
-  } = $props<{
-    data?: unknown;
-    baseline?: unknown;
-    dirty?: boolean;
-    diffContext?: DiffStatus;
-    depth?: number;
-    currentDepth?: number;
-    isLast?: boolean;
-  }>();
+const {
+  data,
+  baseline,
+  dirty = false,
+  diffContext = "unchanged",
+  depth = 2,
+  currentDepth = 0,
+  isLast = true,
+  preserveKeyOrder = false,
+} = $props<{
+  data?: unknown;
+  baseline?: unknown;
+  dirty?: boolean;
+  diffContext?: DiffStatus;
+  depth?: number;
+  currentDepth?: number;
+  isLast?: boolean;
+  preserveKeyOrder?: boolean;
+}>();
 
   let items = $state<string[]>([]);
   let isArray = $state(false);
@@ -110,22 +112,33 @@
       const currentKeys = currentObj ? Object.keys(currentObj) : [];
       const baselineKeys = baselineObj ? Object.keys(baselineObj) : [];
 
-      const keySet = new Set([
-        ...currentKeys,
-        ...(dirty && baselineObj ? baselineKeys : []),
-      ]);
+      const keys: string[] = [];
+      const seen = new Set<string>();
+      const appendKeys = (list: string[]) => {
+        for (const key of list) {
+          if (!seen.has(key)) {
+            keys.push(key);
+            seen.add(key);
+          }
+        }
+      };
 
-      const keys = Array.from(keySet);
+      appendKeys(currentKeys);
+      if (dirty && baselineObj) {
+        appendKeys(baselineKeys);
+      }
 
-      const sortKeys = Array.isArray(source)
-        ? (keysToSort: string[]) =>
-            keysToSort.sort((a, b) => Number(a) - Number(b))
-        : (keysToSort: string[]) =>
-            keysToSort.sort((a, b) =>
-              a.localeCompare(b, undefined, { numeric: true }),
-            );
+      if (!preserveKeyOrder) {
+        const sortKeys = Array.isArray(source)
+          ? (keysToSort: string[]) =>
+              keysToSort.sort((a, b) => Number(a) - Number(b))
+          : (keysToSort: string[]) =>
+              keysToSort.sort((a, b) =>
+                a.localeCompare(b, undefined, { numeric: true }),
+              );
 
-      sortKeys(keys);
+        sortKeys(keys);
+      }
 
       const meta: typeof diffMeta = {};
 

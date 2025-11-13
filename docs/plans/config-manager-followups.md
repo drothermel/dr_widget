@@ -10,11 +10,6 @@
    - Decide whether to follow the original plan (pass `bindings` so the panel can update `baseline_state`, `config_file`, etc.) or document why we’re keeping callbacks.  
    - Implement the chosen path and update docs/notebook accordingly.
 
-2. **Metadata-aware preview**  
-   - Goal: give users a toggle between “editable data” and “would be saved” payloads.  
-   - Steps: (a) capture both the wrapped payload and the data-only version when loading/saving; (b) extend `loadedConfigSummary` with wrapped JSON; (c) add a toggle in the preview components to switch between the two; (d) share normalization helpers so Browse, main card, and modal all render consistent metadata.  
-   - Finish with docs updates once behavior lands.
-
 ## Needs Testing
 
 1. **Normalize `config_file` to absolute paths**  
@@ -38,6 +33,10 @@
 1. **Temporarily hide Complex preview mode**  
    - ConfigViewerPanel now forces the Simple view, hides the toggle, drops the jsontree blurb, and keeps the complex implementation dormant for future re-enablement.  
    - UI copy no longer references graph mode; no other components needed changes.
+
+2. **Metadata-aware preview**  
+   - Added shared config-format helpers, captured wrapped payloads during load/save, and wired every preview surface with a two-tab toggle (Editable Data vs Saved Payload) so users can switch between editable JSON and the exact on-disk structure.  
+   - “Saved Payload” view preserves metadata ordering (version/saved_at before data), ensuring the preview matches the saved file layout; all previews now rely on the same normalization logic.
 
 ## Next Steps
 

@@ -53,9 +53,7 @@ export function buildWrappedPayload({
   version?: string | null;
   savedAt?: string | null;
 }): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    data,
-  };
+  const payload: Record<string, unknown> = {};
 
   if (version && version.trim().length > 0) {
     payload.version = version;
@@ -64,6 +62,8 @@ export function buildWrappedPayload({
   if (savedAt && savedAt.trim().length > 0) {
     payload.saved_at = savedAt;
   }
+
+  payload.data = data;
 
   return payload;
 }
@@ -86,4 +86,3 @@ export function formatSavedAt(value: unknown): string | undefined {
     minute: "2-digit",
   }).format(parsed);
 }
-
