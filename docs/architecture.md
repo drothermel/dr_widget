@@ -5,7 +5,7 @@ This project glues together three layers:
 1. **Python package (`src/dr_widget`)**
    - Exposes AnyWidget subclasses (e.g., `ConfigFileManager`) that notebooks instantiate.
    - Ship the compiled frontend bundle by pointing `_esm`/`_css` at files under `static/`.  
-   - Traitlets (`files`, `file_count`, `error`, `selected_config`) are the single source of truth for state moving between Python and Svelte. `selected_config` mirrors the most recently loaded config’s JSON payload so notebook code can consume it immediately.
+   - Traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last saved payload for dirty detection, and `version`/`config_file` expose metadata directly to notebooks.
 
 2. **Widget workspace (`src/dr_widget/widgets/config_file_manager`)**
    - Bun workspace with its own `package.json`, Vite config, and Tailwind CSS.
