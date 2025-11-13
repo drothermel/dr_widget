@@ -127,15 +127,14 @@
     }
   };
 
-  const downloadFallback = () => {
-    if (!rawConfig) return;
-    const blob = new Blob([rawConfig], {
+  const downloadFallback = (contents: string, fileName: string) => {
+    const blob = new Blob([contents], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = chosenFileName || defaultFileName;
+    anchor.download = fileName;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -147,14 +146,34 @@
       return;
     }
 
+    const dataObject =
+      parsedConfig && typeof parsedConfig === "object" && !Array.isArray(parsedConfig)
+        ? (parsedConfig as Record<string, unknown>)
+        : undefined;
+
+    if (!dataObject) {
+      saveError = "Config JSON must be an object.";
+      onSaveError?.(saveError);
+      return;
+    }
+
     saveError = "";
     lastSavedMessage = "";
 
+    const timestamp = new Date().toISOString();
+    const normalizedVersion = versionInput?.trim() ? versionInput.trim() : "default_v0";
+    const payload = {
+      version: normalizedVersion,
+      saved_at: timestamp,
+      data: dataObject,
+    };
+    const serializedConfig = JSON.stringify(payload, null, 2);
+    const targetFileName = chosenFileName || defaultFileName;
+
     if (!supportsFileSystemAccess) {
-      downloadFallback();
-      const timestamp = new Date().toISOString();
-      onSaveSuccess?.({ fileName: chosenFileName || defaultFileName, timestamp });
-      lastSavedMessage = `Downloaded ${chosenFileName || defaultFileName}`;
+      downloadFallback(serializedConfig, targetFileName);
+      onSaveSuccess?.({ fileName: targetFileName, timestamp });
+      lastSavedMessage = `Downloaded ${targetFileName}`;
       return;
     }
 
@@ -169,10 +188,9 @@
       await handle.requestPermission?.({ mode: "readwrite" });
 
       const writable = await handle.createWritable();
-      await writable.write(rawConfig);
+      await writable.write(serializedConfig);
       await writable.close();
 
-      const timestamp = new Date().toISOString();
       lastSavedMessage = `Saved ${handle.name} at ${new Date(timestamp).toLocaleString()}`;
       fileHandle = handle;
       onSaveSuccess?.({ fileName: handle.name, timestamp });
