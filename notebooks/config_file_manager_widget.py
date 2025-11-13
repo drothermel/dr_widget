@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.17.6"
+__generated_with = "0.17.7"
 app = marimo.App(width="columns")
 
 with app.setup:
