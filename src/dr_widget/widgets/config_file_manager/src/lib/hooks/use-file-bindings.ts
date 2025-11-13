@@ -19,9 +19,11 @@ type RejectHandler = NonNullable<FileDropZoneProps["onFileRejected"]>;
 export function createFileBindingHandlers({
   bindings,
   maxFiles,
+  writeCallback,
 }: {
   bindings: FileBinding;
   maxFiles?: number;
+  writeCallback?: (contents?: string | null) => void;
 }) {
   const maxFileCount = Number.isFinite(maxFiles) ? maxFiles : undefined;
 
@@ -92,7 +94,12 @@ export function createFileBindingHandlers({
   };
 
   const writeSelectedConfig = (contents: string | null | undefined): void => {
+    writeCallback?.(contents);
     bindings.selected_config = contents ?? "";
+  };
+
+  const writeError = (error: string): void => {
+    bindings.error = error;
   };
 
   return {
@@ -103,5 +110,6 @@ export function createFileBindingHandlers({
     handleFileRejected,
     removeFile,
     writeSelectedConfig,
+    writeError,
   };
 }

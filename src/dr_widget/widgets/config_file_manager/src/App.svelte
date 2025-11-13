@@ -8,15 +8,6 @@
     file_count: 0,
     error: "",
   });
-
-  // Watch for changes to display them
-  $effect(() => {
-    console.log("Files updated:", bindings.files);
-    console.log("File count:", bindings.file_count);
-    if (bindings.error) {
-      console.error("Error:", bindings.error);
-    }
-  });
 </script>
 
 <main class="mx-auto max-w-5xl p-8 font-sans">

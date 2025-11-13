@@ -17,10 +17,15 @@
   }>();
 
   const maxFiles = 1;
+  let lastWrittenConfig = $state<string | undefined | null>(undefined);
+  const writeConfigCallback = (contents?: string | null) => {
+    lastWrittenConfig = contents;
+  };
 
   const bindingHandlers = createFileBindingHandlers({
     bindings,
     maxFiles,
+    writeCallback:writeConfigCallback,
   });
 
   const parsedFiles = $derived(bindingHandlers.readBoundFiles());
@@ -108,11 +113,12 @@
 
     previewFromLoaded = false;
     showLoadedPreview = false;
-    bindings.error = "";
+    bindingHandlers.writeError("");
   };
 
+
   const handleSaveError = (message: string) => {
-    bindings.error = message;
+    bindingHandlers.writeError(message);
   };
 
   const computeByteSize = (input: string): number => {
@@ -128,6 +134,7 @@
     previewJson = undefined;
   };
 
+  // previewText
   $effect(() => {
     if (!previewText) {
       previewJson = undefined;
@@ -141,6 +148,7 @@
     }
   });
 
+  // parsedFiles, previewFile, previewFromLoaded
   $effect(() => {
     if (parsedFiles.length === 0 && previewFile && !previewFromLoaded) {
       resetPreviewState();
@@ -219,11 +227,24 @@
     bindingHandlers.writeSelectedConfig(serialized);
   };
 
+  // managerOpen, isDirty
   $effect(() => {
     if (!managerOpen) return;
     activeTab = isDirty ? "save" : "find";
   });
 
+  // selected_config only
+  $effect(() => {
+    console.log("CHECK NEW === LAST WRITTEN: selected config updated")
+    console.log("NEW:", bindings.selected_config);
+    console.log("OLD:", lastWrittenConfig);
+    if (lastWrittenConfig !== bindings.selected_config) {
+      console.log("WRITING THE SELECTED CONFIG TO FIX MISMATCH")
+      bindingHandlers.writeSelectedConfig(bindings.selected_config);
+    }
+  });
+
+  // selected_config and more
   $effect(() => {
     const raw = bindings.selected_config;
     if (!raw || raw.trim().length === 0) {
@@ -282,6 +303,7 @@
     }
   });
 
+  // loadedConfigRaw
   $effect(() => {
     const raw = loadedConfigRaw;
     if (!raw) {
@@ -310,7 +332,7 @@
       type: file.type,
     };
     previewText = fileText;
-    bindings.error = "";
+    bindingHandlers.writeError("");
     previewFromLoaded = false;
   };
 
@@ -322,7 +344,7 @@
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
       loadedConfigPath = undefined;
-      bindings.error = "";
+      bindingHandlers.writeError("");
       resetPreviewState();
       loadedConfigRaw = undefined;
       isDirty = false;
@@ -332,7 +354,7 @@
     if (parsedFiles.length > 0) {
       bindingHandlers.removeFile(0);
     }
-    bindings.error = "";
+    bindingHandlers.writeError("");
     resetPreviewState();
     loadedConfigPath = undefined;
     loadedConfigRaw = undefined;
@@ -341,7 +363,7 @@
 
   const handleLoadConfig = () => {
     if (!previewText) {
-      bindings.error = "Unable to load config: missing file contents.";
+      bindingHandlers.writeError("Unable to load config: missing file contents.");
       return;
     }
 
@@ -352,7 +374,7 @@
       try {
         normalized = JSON.parse(previewText);
       } catch {
-        bindings.error = "Config is not valid JSON.";
+        bindingHandlers.writeError("Config is not valid JSON.");
         return;
       }
     }
@@ -377,13 +399,14 @@
       bindingHandlers.removeFile(0);
     }
 
-    bindings.error = "";
+    bindingHandlers.writeError("");
     resetPreviewState();
     managerOpen = false;
     showLoadedPreview = false;
     previewFromLoaded = false;
   };
 
+  // managerOpen
   $effect(() => {
     if (managerOpen) {
       showLoadedPreview = false;

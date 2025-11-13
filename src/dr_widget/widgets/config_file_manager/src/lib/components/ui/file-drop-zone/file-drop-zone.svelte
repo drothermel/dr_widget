@@ -59,7 +59,9 @@
 		await upload(Array.from(selectedFiles));
 
 		// this if a file fails and we upload the same file again we still get feedback
-		(e.target as HTMLInputElement).value = '';
+		if (e.target as HTMLInputElement) {
+      		(e.target as HTMLInputElement).value = '';
+		}
 	};
 
 	const shouldAcceptFile = (file: File, fileNumber: number): FileRejectedReason | undefined => {
