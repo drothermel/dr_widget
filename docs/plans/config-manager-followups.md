@@ -27,6 +27,12 @@
    - Notebook authors currently hand-roll `json.loads(widget.current_state)` → mutate → `json.dumps`.  
    - Provide a small helper (Python function or documented pattern) that copies `current_data`, applies updates, and writes back, making “UI element updates widget” demos cleaner.
 
+2. **Add save path to the file written metadata**
+
+3. **Make it possible to "full height" the config preview**
+
+4. **Make it possible to edit the config in the config preview**
+
 ## Completed
 
 1. **Temporarily hide Complex preview mode**  
