@@ -192,15 +192,12 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.files = json.dumps([file_entry])
         self.file_count = 1
 
-    @property
-    def current_data(self) -> Dict[str, Any]:
-        """Return the parsed current_state JSON payload as a dict."""
-
-        if not self.current_state:
+    def _parse_state(self, value: str) -> Dict[str, Any]:
+        if not value:
             return {}
 
         try:
-            parsed = json.loads(self.current_state)
+            parsed = json.loads(value)
         except json.JSONDecodeError:
             return {}
 
@@ -210,7 +207,19 @@ class ConfigFileManager(anywidget.AnyWidget):
         return {}
 
     @property
+    def current_data(self) -> Dict[str, Any]:
+        """Return the parsed current_state JSON payload as a dict."""
+
+        return self._parse_state(self.current_state)
+
+    @property
+    def baseline_data(self) -> Dict[str, Any]:
+        """Return the parsed baseline_state JSON payload as a dict."""
+
+        return self._parse_state(self.baseline_state)
+
+    @property
     def is_dirty(self) -> bool:
         """True if the current state differs from the last saved baseline."""
 
-        return self.current_state != self.baseline_state
+        return self.current_data != self.baseline_data
