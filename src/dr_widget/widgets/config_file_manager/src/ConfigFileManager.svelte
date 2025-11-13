@@ -60,6 +60,18 @@ const parseJsonObject = (value?: string | null) => {
   return undefined;
 };
 
+const canonicalizeState = (value?: string | null) => {
+  const parsed = parseJsonObject(value);
+  if (parsed) {
+    try {
+      return JSON.stringify(parsed);
+    } catch {
+      return (value ?? "").trim();
+    }
+  }
+  return (value ?? "").trim();
+};
+
 type NormalizedConfig = {
   data: Record<string, unknown>;
   version?: string;
@@ -114,7 +126,9 @@ let lastSavedAt = $state<string | undefined>(undefined);
 
 const parsedFiles = $derived(bindingHandlers.readBoundFiles());
 const baselineParsed = $derived.by(() => parseJsonObject(bindings.baseline_state));
-const isDirty = $derived.by(() => (bindings.current_state ?? "") !== (bindings.baseline_state ?? ""));
+const isDirty = $derived.by(
+  () => canonicalizeState(bindings.current_state) !== canonicalizeState(bindings.baseline_state),
+);
 const selectedConfigVersion = $derived.by(() => bindings.version ?? "");
 const canEditSelectedConfigVersion = $derived.by(() => Boolean(bindings.current_state && bindings.current_state.trim().length > 0));
 
