@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
+  import type { FileBinding } from "$lib/hooks/use-file-bindings";
 
   type SaveResult = {
     fileName?: string;
@@ -32,6 +33,7 @@
     };
 
   const {
+    bindings,
     rawConfig,
     baselineConfig,
     defaultFileName = "config.json",
@@ -42,6 +44,7 @@
     onSaveError,
     onVersionChange,
   } = $props<{
+    bindings: FileBinding;
     rawConfig?: string;
     baselineConfig?: unknown;
     defaultFileName?: string;
@@ -52,6 +55,67 @@
     onSaveError?: (message: string) => void;
     onVersionChange?: (version: string) => void;
   }>();
+
+  const isAbsolutePath = (value?: string): boolean => {
+    if (!value) return false;
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    return trimmed.startsWith("/") || trimmed.startsWith("\\") || /^[A-Za-z]:[\\/]/.test(trimmed);
+  };
+
+  const extractFileName = (value?: string): string | undefined => {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parts = trimmed.split(/[\\/]+/).filter(Boolean);
+    return parts.length > 0 ? parts[parts.length - 1] : trimmed;
+  };
+
+  const dirname = (value?: string): string => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const windowsDrive = trimmed.match(/^[A-Za-z]:[\\/]/)?.[0];
+    const sep = trimmed.includes("\\") && !trimmed.includes("/") ? "\\" : "/";
+    const normalized = trimmed.replace(/[\\/]+/g, sep);
+    const parts = normalized.split(sep);
+    if (parts.length <= 1) {
+      return windowsDrive ?? (normalized.startsWith(sep) ? sep : "");
+    }
+    parts.pop();
+    let dir = parts.join(sep);
+    if (windowsDrive && !dir.startsWith(windowsDrive)) {
+      dir = `${windowsDrive}${dir}`;
+    } else if (normalized.startsWith(sep) && !dir.startsWith(sep)) {
+      dir = `${sep}${dir}`;
+    }
+    return dir;
+  };
+
+  const joinPath = (dir: string, leaf: string): string => {
+    if (!dir) return leaf;
+    const sep = dir.includes("\\") && !dir.includes("/") ? "\\" : "/";
+    const normalizedDir = dir === sep || dir.endsWith(sep) ? dir : `${dir}${sep}`;
+    return `${normalizedDir}${leaf}`;
+  };
+
+  const resolveAbsoluteTarget = (candidate?: string, fallback?: string | null): string => {
+    const trimmedCandidate = candidate?.trim();
+    if (!trimmedCandidate) {
+      return fallback?.trim() ?? "";
+    }
+    if (isAbsolutePath(trimmedCandidate)) {
+      return trimmedCandidate;
+    }
+    const fallbackValue = fallback?.trim() ?? "";
+    if (fallbackValue && isAbsolutePath(fallbackValue)) {
+      const parent = dirname(fallbackValue);
+      if (parent) {
+        return joinPath(parent, trimmedCandidate);
+      }
+    }
+    return trimmedCandidate;
+  };
 
   let fileHandle = $state<BrowserFileHandle | null>(null);
   let chosenFileName = $state(defaultFileName);
@@ -84,6 +148,14 @@
     }
   });
 
+  let lastDefaultFileName = $state(defaultFileName);
+  $effect(() => {
+    if (defaultFileName !== lastDefaultFileName && !fileHandle) {
+      chosenFileName = defaultFileName;
+      lastDefaultFileName = defaultFileName;
+    }
+  });
+
   $effect(() => {
     versionInput = currentVersion ?? "";
   });
@@ -113,7 +185,9 @@
     try {
       const handle = await fsWindow.showSaveFilePicker(buildPickerOptions());
       fileHandle = handle;
-      chosenFileName = handle.name;
+      if (!chosenFileName) {
+        chosenFileName = handle.name;
+      }
       saveError = "";
       return handle;
     } catch (error) {
@@ -171,11 +245,14 @@
     };
     const serializedConfig = JSON.stringify(payload, null, 2);
     const targetFileName = chosenFileName || defaultFileName;
+    const absoluteTargetPath = resolveAbsoluteTarget(targetFileName, bindings.config_file ?? undefined);
+    const fallbackName = absoluteTargetPath || "config.json";
+    const downloadName = extractFileName(absoluteTargetPath) ?? fallbackName;
 
     if (!supportsFileSystemAccess) {
-      downloadFallback(serializedConfig, targetFileName);
-      onSaveSuccess?.({ fileName: targetFileName, timestamp });
-      lastSavedMessage = `Downloaded ${targetFileName}`;
+      downloadFallback(serializedConfig, downloadName);
+      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
+      lastSavedMessage = `Downloaded ${downloadName}`;
       return;
     }
 
@@ -193,9 +270,10 @@
       await writable.write(serializedConfig);
       await writable.close();
 
-      lastSavedMessage = `Saved ${handle.name} at ${new Date(timestamp).toLocaleString()}`;
+      const savedLabel = extractFileName(absoluteTargetPath) ?? handle.name;
+      lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
       fileHandle = handle;
-      onSaveSuccess?.({ fileName: handle.name, timestamp });
+      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
       saveError = "";
     } catch (error) {
       const message = (error as Error)?.message ?? "Failed to save config.";

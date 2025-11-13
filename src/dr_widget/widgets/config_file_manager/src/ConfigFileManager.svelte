@@ -196,6 +196,9 @@ const normalizedPreviewData = $derived.by(() => {
   let showLoadedPreview = $state(false);
   let previewFromLoaded = $state(false);
   let loadedConfigPath = $state<string | undefined>(undefined);
+  const defaultSaveTarget = $derived.by(
+    () => bindings.config_file || loadedConfigPath || lastLoadedFileName || "config.json",
+  );
 
   const handleSaveSuccess = ({
     fileName,
@@ -207,10 +210,11 @@ const normalizedPreviewData = $derived.by(() => {
     const raw = bindings.current_state;
 
     if (fileName) {
+      const displayName = extractFileName(fileName) ?? fileName;
       bindingHandlers.writeConfigFile(fileName);
-      bindingHandlers.writeConfigFileDisplay(extractFileName(fileName) ?? fileName);
+      bindingHandlers.writeConfigFileDisplay(displayName);
       loadedConfigPath = fileName;
-      lastLoadedFileName = fileName;
+      lastLoadedFileName = displayName;
     }
 
     bindingHandlers.writeBaselineState(raw ?? "");
@@ -556,11 +560,10 @@ const normalizedPreviewData = $derived.by(() => {
 
         <Tabs.Content value="save">
           <SaveConfigPanel
+            bindings={bindings}
             rawConfig={bindings.current_state}
             baselineConfig={baselineParsed}
-            defaultFileName={
-              configFileDisplayName || loadedConfigPath || lastLoadedFileName || "config.json"
-            }
+            defaultFileName={defaultSaveTarget}
             dirty={isDirty}
             currentVersion={selectedConfigVersion}
             canEditVersion={canEditSelectedConfigVersion}
