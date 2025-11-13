@@ -3,8 +3,6 @@
   import { Button } from "$lib/components/ui/button";
   import SimpleJsonViewer from "./SimpleJsonViewer.svelte";
   import ComplexJsonViewer from "./ComplexJsonViewer.svelte";
-  import { Separator } from "$lib/components/ui/separator";
-
   type ViewerMode = "simple" | "complex";
 
   const { data, rawJson, baselineData, dirty = false, initialMode = "simple" } =
@@ -16,10 +14,16 @@
     initialMode?: ViewerMode;
   }>();
 
-  let mode = $state<ViewerMode>(initialMode);
+  const complexModeEnabled = false;
+
+  let mode = $state<ViewerMode>(complexModeEnabled ? initialMode : "simple");
   let copyState = $state<"idle" | "copied" | "error">("idle");
 
   const switchMode = (nextMode: ViewerMode) => {
+    if (!complexModeEnabled && nextMode === "complex") {
+      mode = "simple";
+      return;
+    }
     mode = nextMode;
   };
 
@@ -48,30 +52,31 @@
       <div>
         <Card.Title>Config Preview</Card.Title>
         <Card.Description>
-          Inspect the selected file in either a formatted tree or an interactive
-          graph.
+          Inspect the selected file in a formatted tree.
         </Card.Description>
       </div>
 
       <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-        <div class="flex rounded-md border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
-          <button
-            type="button"
-            class="viewer-toggle"
-            class:viewer-toggle-active={mode === "simple"}
-            onclick={() => switchMode("simple")}
-          >
-            Simple
-          </button>
-          <button
-            type="button"
-            class="viewer-toggle"
-            class:viewer-toggle-active={mode === "complex"}
-            onclick={() => switchMode("complex")}
-          >
-            Complex
-          </button>
-        </div>
+        {#if complexModeEnabled}
+          <div class="flex rounded-md border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={mode === "simple"}
+              onclick={() => switchMode("simple")}
+            >
+              Simple
+            </button>
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={mode === "complex"}
+              onclick={() => switchMode("complex")}
+            >
+              Complex
+            </button>
+          </div>
+        {/if}
 
         <Button
           variant="outline"
@@ -92,7 +97,7 @@
   </Card.Header>
 
   <Card.Content class="space-y-4">
-    {#if mode === "simple"}
+    {#if mode === "simple" || !complexModeEnabled}
       <div
         class="viewer-shell rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
@@ -124,22 +129,6 @@
       </div>
     {/if}
 
-    <Separator />
-
-    <div class="rounded-md bg-zinc-100/60 p-3 text-xs leading-relaxed text-zinc-500 dark:bg-zinc-900/50 dark:text-zinc-400">
-      <p>
-        The complex view adapts the{" "}
-        <a
-          href="https://github.com/BUMBAIYA/jsontree"
-          target="_blank"
-          rel="noreferrer"
-          class="font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
-          jsontree
-        </a>
-        {" "}visual layout to display nested nodes spatially.
-      </p>
-    </div>
   </Card.Content>
 </Card.Root>
 

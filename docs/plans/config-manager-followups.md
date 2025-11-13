@@ -10,10 +10,6 @@
    - Decide whether to follow the original plan (pass `bindings` so the panel can update `baseline_state`, `config_file`, etc.) or document why we’re keeping callbacks.  
    - Implement the chosen path and update docs/notebook accordingly.
 
-2. **Temporarily hide Complex preview mode**  
-   - Approach: gate the toggle inside `ConfigViewerPanel` behind a local flag so the UI always renders the Simple view while keeping the Complex implementation in the file.  
-   - Update any surrounding copy (e.g., panel descriptions) so they no longer reference the complex/graph view until it returns.
-
 ## Needs Testing
 
 1. **Normalize `config_file` to absolute paths**  
@@ -31,6 +27,12 @@
    - Provide a small helper (Python function or documented pattern) that copies `current_data`, applies updates, and writes back, making “UI element updates widget” demos cleaner.
 
 3. **Remove Complex Mode from display until working**
+
+## Completed
+
+1. **Temporarily hide Complex preview mode**  
+   - ConfigViewerPanel now forces the Simple view, hides the toggle, drops the jsontree blurb, and keeps the complex implementation dormant for future re-enablement.  
+   - UI copy no longer references graph mode; no other components needed changes.
 
 ## Next Steps
 
