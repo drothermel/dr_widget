@@ -23,6 +23,8 @@
     onRemove,
     onLoad,
     disableLoad,
+    wrappedContents,
+    wrappedParsed,
   } = $props<{
     file?: BoundFile;
     rawContents?: string;
@@ -38,6 +40,8 @@
     onRemove: () => void;
     onLoad: () => void;
     disableLoad?: boolean;
+    wrappedContents?: string;
+    wrappedParsed?: unknown;
   }>();
 </script>
 
@@ -114,6 +118,8 @@
             rawJson={rawContents}
             baselineData={baselineContents}
             {dirty}
+            wrappedJson={wrappedContents}
+            wrappedData={wrappedParsed}
           />
         </div>
       {/if}

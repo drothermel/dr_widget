@@ -3,30 +3,74 @@
   import { Button } from "$lib/components/ui/button";
   import SimpleJsonViewer from "./SimpleJsonViewer.svelte";
   import ComplexJsonViewer from "./ComplexJsonViewer.svelte";
-  import { Separator } from "$lib/components/ui/separator";
-
   type ViewerMode = "simple" | "complex";
+  type ViewerSource = "data" | "wrapped";
 
-  const { data, rawJson, baselineData, dirty = false, initialMode = "simple" } =
+  const {
+    data,
+    rawJson,
+    baselineData,
+    dirty = false,
+    initialMode = "simple",
+    wrappedJson,
+    wrappedData,
+  } =
     $props<{
-    data?: unknown;
-    rawJson?: string;
-    baselineData?: unknown;
-    dirty?: boolean;
-    initialMode?: ViewerMode;
-  }>();
+      data?: unknown;
+      rawJson?: string;
+      baselineData?: unknown;
+      dirty?: boolean;
+      initialMode?: ViewerMode;
+      wrappedJson?: string;
+      wrappedData?: unknown;
+    }>();
 
-  let mode = $state<ViewerMode>(initialMode);
+  const complexModeEnabled = false;
+
+  let mode = $state<ViewerMode>(complexModeEnabled ? initialMode : "simple");
+  let source = $state<ViewerSource>("data");
   let copyState = $state<"idle" | "copied" | "error">("idle");
+  const hasWrappedView = $derived.by(() => Boolean(wrappedJson || wrappedData));
 
   const switchMode = (nextMode: ViewerMode) => {
+    if (!complexModeEnabled && nextMode === "complex") {
+      mode = "simple";
+      return;
+    }
     mode = nextMode;
   };
 
+  const switchSource = (nextSource: ViewerSource) => {
+    if (!hasWrappedView) {
+      source = "data";
+      return;
+    }
+    source = nextSource;
+  };
+
+  $effect(() => {
+    if (!hasWrappedView) {
+      source = "data";
+    }
+  });
+
+  const effectiveRawJson = $derived.by(() =>
+    source === "data" ? rawJson : wrappedJson ?? rawJson,
+  );
+  const effectiveData = $derived.by(() =>
+    source === "data" ? data : wrappedData ?? data,
+  );
+  const effectiveDirty = $derived.by(() => (source === "data" ? dirty : false));
+  const effectiveBaseline = $derived.by(() =>
+    source === "data" ? baselineData : undefined,
+  );
+
   const copyToClipboard = async () => {
     const payload =
-      rawJson ??
-      (data !== undefined ? JSON.stringify(data, null, 2) : undefined);
+      effectiveRawJson ??
+      (effectiveData !== undefined
+        ? JSON.stringify(effectiveData, null, 2)
+        : undefined);
 
     if (!payload) return;
 
@@ -48,36 +92,57 @@
       <div>
         <Card.Title>Config Preview</Card.Title>
         <Card.Description>
-          Inspect the selected file in either a formatted tree or an interactive
-          graph.
+          Inspect the selected file in a formatted tree.
         </Card.Description>
+        {#if hasWrappedView}
+          <div class="mt-2 inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-xs dark:border-zinc-800 dark:bg-zinc-900">
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={source === "data"}
+              onclick={() => switchSource("data")}
+            >
+              Editable Data
+            </button>
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={source === "wrapped"}
+              onclick={() => switchSource("wrapped")}
+            >
+              Saved Payload
+            </button>
+          </div>
+        {/if}
       </div>
 
       <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-        <div class="flex rounded-md border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
-          <button
-            type="button"
-            class="viewer-toggle"
-            class:viewer-toggle-active={mode === "simple"}
-            onclick={() => switchMode("simple")}
-          >
-            Simple
-          </button>
-          <button
-            type="button"
-            class="viewer-toggle"
-            class:viewer-toggle-active={mode === "complex"}
-            onclick={() => switchMode("complex")}
-          >
-            Complex
-          </button>
-        </div>
+        {#if complexModeEnabled}
+          <div class="flex rounded-md border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={mode === "simple"}
+              onclick={() => switchMode("simple")}
+            >
+              Simple
+            </button>
+            <button
+              type="button"
+              class="viewer-toggle"
+              class:viewer-toggle-active={mode === "complex"}
+              onclick={() => switchMode("complex")}
+            >
+              Complex
+            </button>
+          </div>
+        {/if}
 
         <Button
           variant="outline"
           size="sm"
           onclick={copyToClipboard}
-          disabled={data === undefined && !rawJson}
+          disabled={effectiveData === undefined && !effectiveRawJson}
         >
           {copyState === "copied" ? "Copied!" : "Copy JSON"}
         </Button>
@@ -92,26 +157,27 @@
   </Card.Header>
 
   <Card.Content class="space-y-4">
-    {#if mode === "simple"}
+    {#if mode === "simple" || !complexModeEnabled}
       <div
         class="viewer-shell rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         <SimpleJsonViewer
-          data={data}
-          baseline={dirty ? baselineData : undefined}
-          {dirty}
+          data={effectiveData}
+          baseline={effectiveDirty ? effectiveBaseline : undefined}
+          dirty={effectiveDirty}
           depth={3}
+          preserveKeyOrder={source === "wrapped"}
         />
       </div>
     {:else}
       <div
         class="rounded-xl border border-zinc-100 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
-        <ComplexJsonViewer data={data} />
+        <ComplexJsonViewer data={effectiveData} />
       </div>
     {/if}
 
-    {#if dirty && baselineData}
+    {#if effectiveDirty && effectiveBaseline}
       <div class="diff-legend" role="note">
         <span class="legend-item">
           <span class="legend-swatch legend-swatch-added"></span>
@@ -124,22 +190,6 @@
       </div>
     {/if}
 
-    <Separator />
-
-    <div class="rounded-md bg-zinc-100/60 p-3 text-xs leading-relaxed text-zinc-500 dark:bg-zinc-900/50 dark:text-zinc-400">
-      <p>
-        The complex view adapts the{" "}
-        <a
-          href="https://github.com/BUMBAIYA/jsontree"
-          target="_blank"
-          rel="noreferrer"
-          class="font-medium text-blue-600 hover:underline dark:text-blue-400"
-        >
-          jsontree
-        </a>
-        {" "}visual layout to display nested nodes spatially.
-      </p>
-    </div>
   </Card.Content>
 </Card.Root>
 

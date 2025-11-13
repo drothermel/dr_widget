@@ -28,6 +28,21 @@ def _default_config_name(version: str) -> str:
     return f"{safe}.json"
 
 
+def _resolve_config_path(value: str | Path | None) -> str:
+    if value is None:
+        return ""
+
+    raw = str(value).strip()
+    if not raw:
+        return ""
+
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+
+    return str(candidate.resolve())
+
+
 def _serialize_user_state(data: Dict[str, Any]) -> str:
     """Return a JSON string for the user-facing state or an empty string."""
 
@@ -130,6 +145,7 @@ class ConfigFileManager(anywidget.AnyWidget):
     current_state = traitlets.Unicode("").tag(sync=True)
     baseline_state = traitlets.Unicode("").tag(sync=True)
     config_file = traitlets.Unicode("").tag(sync=True)
+    config_file_display = traitlets.Unicode("").tag(sync=True)
     version = traitlets.Unicode("default_v0").tag(sync=True)
     files = traitlets.Unicode("[]").tag(sync=True)
     file_count = traitlets.Int(0).tag(sync=True)
@@ -158,10 +174,13 @@ class ConfigFileManager(anywidget.AnyWidget):
             self.current_state = _serialize_user_state(user_data)
             # No baseline until the data is persisted via the UI.
             self.baseline_state = ""
-            self.config_file = _default_config_name(self.version)
+            default_name = _default_config_name(self.version)
+            default_path = _resolve_config_path(default_name)
+            self.config_file = default_path
             return
 
-        path = Path(config_file).expanduser()
+        resolved_path = _resolve_config_path(config_file)
+        path = Path(resolved_path)
 
         if config_dict is not None:
             if path.exists():
@@ -223,3 +242,15 @@ class ConfigFileManager(anywidget.AnyWidget):
         """True if the current state differs from the last saved baseline."""
 
         return self.current_data != self.baseline_data
+
+    @traitlets.validate("config_file")
+    def _validate_config_file(self, proposal: traitlets.Bunch) -> str:
+        return _resolve_config_path(proposal["value"])
+
+    @traitlets.observe("config_file")
+    def _observe_config_file(self, change: traitlets.Bunch) -> None:
+        value = change["new"]
+        if value:
+            self.config_file_display = Path(value).name
+        else:
+            self.config_file_display = ""

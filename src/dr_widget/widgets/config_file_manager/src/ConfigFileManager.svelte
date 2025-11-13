@@ -11,6 +11,11 @@
     type BoundFile,
     type FileBinding,
   } from "$lib/hooks/use-file-bindings";
+  import {
+    buildWrappedPayload,
+    formatSavedAt,
+    normalizeConfigPayload,
+  } from "$lib/utils/config-format";
 
 const { bindings } = $props<{
   bindings: FileBinding;
@@ -21,6 +26,7 @@ let lastWrittenCurrentState = $state<string | undefined | null>(undefined);
 let lastWrittenBaselineState = $state<string | undefined | null>(undefined);
 let lastWrittenVersion = $state<string | undefined | null>(undefined);
 let lastWrittenConfigFile = $state<string | undefined | null>(undefined);
+let lastWrittenConfigFileDisplay = $state<string | undefined | null>(undefined);
 
 const writeCurrentStateCallback = (contents?: string | null) => {
   lastWrittenCurrentState = contents;
@@ -38,6 +44,10 @@ const writeConfigFileCallback = (path?: string | null) => {
   lastWrittenConfigFile = path;
 };
 
+const writeConfigFileDisplayCallback = (path?: string | null) => {
+  lastWrittenConfigFileDisplay = path;
+};
+
 const bindingHandlers = createFileBindingHandlers({
   bindings,
   maxFiles,
@@ -45,6 +55,7 @@ const bindingHandlers = createFileBindingHandlers({
   writeBaselineStateCallback,
   writeVersionCallback,
   writeConfigFileCallback,
+  writeConfigFileDisplayCallback,
 });
 
 const parseJsonObject = (value?: string | null) => {
@@ -72,54 +83,11 @@ const canonicalizeState = (value?: string | null) => {
   return (value ?? "").trim();
 };
 
-type NormalizedConfig = {
-  data: Record<string, unknown>;
-  version?: string;
-  savedAt?: string;
-};
-
-const normalizeConfigPayload = (payload: Record<string, unknown>): NormalizedConfig => {
-  let data: Record<string, unknown> | undefined;
-
-  const payloadData = payload["data"];
-  if (payloadData && typeof payloadData === "object" && !Array.isArray(payloadData)) {
-    data = payloadData as Record<string, unknown>;
-  } else if (
-    payload["selections"] &&
-    typeof payload["selections"] === "object" &&
-    !Array.isArray(payload["selections"])
-  ) {
-    data = { selections: payload["selections"] as Record<string, unknown> };
-  } else {
-    const fallback: Record<string, unknown> = {};
-    Object.entries(payload).forEach(([key, value]) => {
-      if (key === "version" || key === "saved_at") {
-        return;
-      }
-      fallback[key] = value;
-    });
-    data = fallback;
-  }
-
-  const versionValue = payload["version"];
-  let version: string | undefined;
-  if (typeof versionValue === "string" && versionValue) {
-    version = versionValue;
-  } else if (typeof versionValue === "number") {
-    version = String(versionValue);
-  }
-
-  const savedAtValue = payload["saved_at"];
-  let savedAt: string | undefined;
-  if (typeof savedAtValue === "string" && savedAtValue) {
-    savedAt = savedAtValue;
-  }
-
-  return {
-    data: data ?? {},
-    version,
-    savedAt,
-  };
+const extractFileName = (value?: string | null) => {
+  if (!value) return undefined;
+  const parts = value.split(/[\\/]+/).filter(Boolean);
+  if (parts.length === 0) return value;
+  return parts[parts.length - 1];
 };
 
 let lastSavedAt = $state<string | undefined>(undefined);
@@ -131,23 +99,9 @@ const isDirty = $derived.by(
 );
 const selectedConfigVersion = $derived.by(() => bindings.version ?? "");
 const canEditSelectedConfigVersion = $derived.by(() => Boolean(bindings.current_state && bindings.current_state.trim().length > 0));
-
-  const formatSavedAt = (value: unknown): string | undefined => {
-    if (typeof value === "string" && value) {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return new Intl.DateTimeFormat(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(parsed);
-      }
-      return value;
-    }
-    return undefined;
-  };
+const configFileDisplayName = $derived.by(
+  () => bindings.config_file_display || extractFileName(bindings.config_file) || undefined,
+);
 
 let previewFile = $state<BoundFile | undefined>(undefined);
 let previewText = $state<string | undefined>(bindings.current_state ?? undefined);
@@ -159,11 +113,15 @@ let previewJson = $state<unknown | undefined>(() => {
     return undefined;
   }
 });
-const normalizedPreviewData = $derived.by(() => {
+const normalizedPreview = $derived.by(() => {
   if (!previewJson || typeof previewJson !== "object") return undefined;
-  const normalized = normalizeConfigPayload(previewJson as Record<string, unknown>);
-  return JSON.stringify(normalized.data, null, 2);
+  return normalizeConfigPayload(previewJson);
 });
+const normalizedPreviewData = $derived.by(() => {
+  if (!normalizedPreview) return undefined;
+  return JSON.stringify(normalizedPreview.data, null, 2);
+});
+const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
   let managerOpen = $state(false);
   let activeTab = $state("find");
   let lastLoadedFileName = $state<string | undefined>(undefined);
@@ -174,12 +132,17 @@ const normalizedPreviewData = $derived.by(() => {
         version?: string;
         rawText?: string;
         parsed?: unknown;
+        wrappedRawText?: string;
+        wrappedParsed?: unknown;
       }
     | undefined
   >(undefined);
   let showLoadedPreview = $state(false);
   let previewFromLoaded = $state(false);
   let loadedConfigPath = $state<string | undefined>(undefined);
+  const defaultSaveTarget = $derived.by(
+    () => bindings.config_file || loadedConfigPath || lastLoadedFileName || "config.json",
+  );
 
   const handleSaveSuccess = ({
     fileName,
@@ -191,9 +154,11 @@ const normalizedPreviewData = $derived.by(() => {
     const raw = bindings.current_state;
 
     if (fileName) {
+      const displayName = extractFileName(fileName) ?? fileName;
       bindingHandlers.writeConfigFile(fileName);
+      bindingHandlers.writeConfigFileDisplay(displayName);
       loadedConfigPath = fileName;
-      lastLoadedFileName = fileName;
+      lastLoadedFileName = displayName;
     }
 
     bindingHandlers.writeBaselineState(raw ?? "");
@@ -201,14 +166,13 @@ const normalizedPreviewData = $derived.by(() => {
 
     const formattedSavedAt = formatSavedAt(timestamp) ?? timestamp;
 
-    let parsed: unknown;
-    if (raw) {
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = loadedConfigSummary?.parsed;
-      }
-    }
+    const parsed = parseJsonObject(raw) ?? {};
+    const wrappedPayload = buildWrappedPayload({
+      data: parsed,
+      version: bindings.version ?? undefined,
+      savedAt: timestamp,
+    });
+    const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
 
     loadedConfigSummary = {
       name: fileName ?? loadedConfigSummary?.name ?? "Config saved",
@@ -216,6 +180,8 @@ const normalizedPreviewData = $derived.by(() => {
       version: bindings.version ?? loadedConfigSummary?.version,
       rawText: raw ?? loadedConfigSummary?.rawText,
       parsed: parsed ?? loadedConfigSummary?.parsed,
+      wrappedRawText: wrappedJson,
+      wrappedParsed: wrappedPayload,
     };
 
     previewFromLoaded = false;
@@ -262,18 +228,9 @@ const normalizedPreviewData = $derived.by(() => {
     }
   });
 
-  const previewSavedAt = $derived.by(() => {
-    if (!previewJson || typeof previewJson !== "object") return undefined;
-    return formatSavedAt((previewJson as Record<string, unknown>)["saved_at"]);
-  });
+  const previewSavedAt = $derived.by(() => formatSavedAt(normalizedPreview?.savedAt));
 
-  const previewVersion = $derived.by(() => {
-    if (!previewJson || typeof previewJson !== "object") return undefined;
-    const value = (previewJson as Record<string, unknown>)["version"];
-    if (typeof value === "string" && value) return value;
-    if (typeof value === "number") return String(value);
-    return undefined;
-  });
+  const previewVersion = $derived.by(() => normalizedPreview?.version);
 
   const handleSelectedVersionChange = (nextVersion: string) => {
     const trimmed = nextVersion.trim();
@@ -318,6 +275,13 @@ const normalizedPreviewData = $derived.by(() => {
     }
   });
 
+  // config_file_display sync
+  $effect(() => {
+    if (lastWrittenConfigFileDisplay !== bindings.config_file_display) {
+      bindingHandlers.writeConfigFileDisplay(bindings.config_file_display);
+    }
+  });
+
   // current_state and metadata summary
   $effect(() => {
     const raw = bindings.current_state;
@@ -334,21 +298,24 @@ const normalizedPreviewData = $derived.by(() => {
       return;
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = undefined;
-    }
+    const parsed = parseJsonObject(raw) ?? {};
+    const wrappedPayload = buildWrappedPayload({
+      data: parsed,
+      version: bindings.version ?? undefined,
+      savedAt: lastSavedAt ?? undefined,
+    });
+    const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
 
     const savedAtLabel = lastSavedAt ? formatSavedAt(lastSavedAt) : undefined;
 
     loadedConfigSummary = {
-      name: bindings.config_file || lastLoadedFileName || loadedConfigSummary?.name || "Config loaded",
+      name: configFileDisplayName || lastLoadedFileName || loadedConfigSummary?.name || "Config loaded",
       savedAt: savedAtLabel,
       version: bindings.version ?? undefined,
       rawText: raw,
       parsed,
+      wrappedRawText: wrappedJson,
+      wrappedParsed: wrappedPayload,
     };
 
     if (!previewFromLoaded && !managerOpen) {
@@ -381,6 +348,7 @@ const normalizedPreviewData = $derived.by(() => {
       bindingHandlers.writeBaselineState("");
       bindingHandlers.writeVersion("");
       bindingHandlers.writeConfigFile("");
+      bindingHandlers.writeConfigFileDisplay("");
       lastSavedAt = undefined;
       loadedConfigSummary = undefined;
       previewFromLoaded = false;
@@ -398,6 +366,7 @@ const normalizedPreviewData = $derived.by(() => {
     bindingHandlers.writeError("");
     resetPreviewState();
     loadedConfigPath = undefined;
+    bindingHandlers.writeConfigFileDisplay("");
   };
 
   const handleLoadConfig = () => {
@@ -424,6 +393,12 @@ const normalizedPreviewData = $derived.by(() => {
 
     const normalized = normalizeConfigPayload(parsedFile as Record<string, unknown>);
     const dataJson = JSON.stringify(normalized.data, null, 2);
+    const wrappedPayload = buildWrappedPayload({
+      data: normalized.data,
+      version: normalized.version ?? bindings.version ?? undefined,
+      savedAt: normalized.savedAt ?? undefined,
+    });
+    const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
 
     bindingHandlers.writeCurrentState(dataJson);
     bindingHandlers.writeBaselineState(dataJson);
@@ -432,6 +407,7 @@ const normalizedPreviewData = $derived.by(() => {
     }
     if (summaryName) {
       bindingHandlers.writeConfigFile(summaryName);
+      bindingHandlers.writeConfigFileDisplay(extractFileName(summaryName) ?? summaryName);
     }
 
     lastSavedAt = normalized.savedAt;
@@ -442,6 +418,8 @@ const normalizedPreviewData = $derived.by(() => {
       version: normalized.version,
       rawText: dataJson,
       parsed: normalized.data,
+      wrappedRawText: wrappedJson,
+      wrappedParsed: wrappedPayload,
     };
     loadedConfigPath = summaryName;
 
@@ -511,8 +489,8 @@ const normalizedPreviewData = $derived.by(() => {
         <Tabs.Content value="find">
           <BrowseConfigsPanel
             file={previewFile}
-            rawContents={previewText}
-            parsedContents={previewJson}
+            rawContents={normalizedPreviewData ?? previewText}
+            parsedContents={normalizedPreviewParsed}
             baselineContents={baselineParsed}
             savedAtLabel={previewSavedAt}
             versionLabel={previewVersion}
@@ -524,16 +502,17 @@ const normalizedPreviewData = $derived.by(() => {
             onRemove={handleRemove}
             onLoad={handleLoadConfig}
             disableLoad={isLoadedConfigCurrent}
+            wrappedContents={previewText}
+            wrappedParsed={previewJson}
           />
         </Tabs.Content>
 
         <Tabs.Content value="save">
           <SaveConfigPanel
+            bindings={bindings}
             rawConfig={bindings.current_state}
             baselineConfig={baselineParsed}
-            defaultFileName={
-              bindings.config_file || loadedConfigPath || lastLoadedFileName || "config.json"
-            }
+            defaultFileName={defaultSaveTarget}
             dirty={isDirty}
             currentVersion={selectedConfigVersion}
             canEditVersion={canEditSelectedConfigVersion}
@@ -554,6 +533,8 @@ const normalizedPreviewData = $derived.by(() => {
       baselineContents={baselineParsed}
       dirty={isDirty}
       onClose={() => (showLoadedPreview = false)}
+      wrappedContents={loadedConfigSummary.wrappedRawText}
+      wrappedParsed={loadedConfigSummary.wrappedParsed}
       onManage={() => {
         showLoadedPreview = false;
         managerOpen = true;
@@ -570,7 +551,7 @@ const normalizedPreviewData = $derived.by(() => {
           </p>
           {#if loadedConfigSummary}
             <p class="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {bindings.config_file || loadedConfigSummary.name}
+              {configFileDisplayName || loadedConfigSummary.name}
             </p>
             {#if loadedConfigSummary.savedAt || bindings.version}
               <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
