@@ -130,6 +130,7 @@ class ConfigFileManager(anywidget.AnyWidget):
     current_state = traitlets.Unicode("").tag(sync=True)
     baseline_state = traitlets.Unicode("").tag(sync=True)
     config_file = traitlets.Unicode("").tag(sync=True)
+    config_file_display = traitlets.Unicode("").tag(sync=True)
     version = traitlets.Unicode("default_v0").tag(sync=True)
     files = traitlets.Unicode("[]").tag(sync=True)
     file_count = traitlets.Int(0).tag(sync=True)
@@ -149,6 +150,7 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.current_state = ""
         self.baseline_state = ""
         self.config_file = ""
+        self.config_file_display = ""
 
         if config_file is None and config_dict is None:
             return
@@ -158,7 +160,9 @@ class ConfigFileManager(anywidget.AnyWidget):
             self.current_state = _serialize_user_state(user_data)
             # No baseline until the data is persisted via the UI.
             self.baseline_state = ""
-            self.config_file = _default_config_name(self.version)
+            default_name = _default_config_name(self.version)
+            self.config_file = default_name
+            self.config_file_display = Path(default_name).name
             return
 
         path = Path(config_file).expanduser()
@@ -185,6 +189,7 @@ class ConfigFileManager(anywidget.AnyWidget):
             self.version = version_str
 
         self.config_file = str(path)
+        self.config_file_display = path.name
         self.current_state = serialized_state
         self.baseline_state = serialized_state
 

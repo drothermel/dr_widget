@@ -13,6 +13,7 @@ export type FileBinding = {
   current_state?: string | null;
   baseline_state?: string | null;
   config_file?: string | null;
+  config_file_display?: string | null;
   version?: string | null;
 };
 
@@ -26,6 +27,7 @@ export function createFileBindingHandlers({
   writeBaselineStateCallback,
   writeVersionCallback,
   writeConfigFileCallback,
+  writeConfigFileDisplayCallback,
 }: {
   bindings: FileBinding;
   maxFiles?: number;
@@ -33,6 +35,7 @@ export function createFileBindingHandlers({
   writeBaselineStateCallback?: (contents?: string | null) => void;
   writeVersionCallback?: (version?: string | null) => void;
   writeConfigFileCallback?: (path?: string | null) => void;
+  writeConfigFileDisplayCallback?: (path?: string | null) => void;
 }) {
   const maxFileCount = Number.isFinite(maxFiles) ? maxFiles : undefined;
 
@@ -122,6 +125,11 @@ export function createFileBindingHandlers({
     bindings.config_file = path ?? "";
   };
 
+  const writeConfigFileDisplay = (path: string | null | undefined): void => {
+    writeConfigFileDisplayCallback?.(path);
+    bindings.config_file_display = path ?? "";
+  };
+
   const writeError = (error: string): void => {
     bindings.error = error;
   };
@@ -137,6 +145,7 @@ export function createFileBindingHandlers({
     writeBaselineState,
     writeVersion,
     writeConfigFile,
+    writeConfigFileDisplay,
     writeError,
   };
 }

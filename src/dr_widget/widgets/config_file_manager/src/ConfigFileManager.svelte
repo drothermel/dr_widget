@@ -21,6 +21,7 @@ let lastWrittenCurrentState = $state<string | undefined | null>(undefined);
 let lastWrittenBaselineState = $state<string | undefined | null>(undefined);
 let lastWrittenVersion = $state<string | undefined | null>(undefined);
 let lastWrittenConfigFile = $state<string | undefined | null>(undefined);
+let lastWrittenConfigFileDisplay = $state<string | undefined | null>(undefined);
 
 const writeCurrentStateCallback = (contents?: string | null) => {
   lastWrittenCurrentState = contents;
@@ -38,6 +39,10 @@ const writeConfigFileCallback = (path?: string | null) => {
   lastWrittenConfigFile = path;
 };
 
+const writeConfigFileDisplayCallback = (path?: string | null) => {
+  lastWrittenConfigFileDisplay = path;
+};
+
 const bindingHandlers = createFileBindingHandlers({
   bindings,
   maxFiles,
@@ -45,6 +50,7 @@ const bindingHandlers = createFileBindingHandlers({
   writeBaselineStateCallback,
   writeVersionCallback,
   writeConfigFileCallback,
+  writeConfigFileDisplayCallback,
 });
 
 const parseJsonObject = (value?: string | null) => {
@@ -70,6 +76,13 @@ const canonicalizeState = (value?: string | null) => {
     }
   }
   return (value ?? "").trim();
+};
+
+const extractFileName = (value?: string | null) => {
+  if (!value) return undefined;
+  const parts = value.split(/[\\/]+/).filter(Boolean);
+  if (parts.length === 0) return value;
+  return parts[parts.length - 1];
 };
 
 type NormalizedConfig = {
@@ -131,6 +144,9 @@ const isDirty = $derived.by(
 );
 const selectedConfigVersion = $derived.by(() => bindings.version ?? "");
 const canEditSelectedConfigVersion = $derived.by(() => Boolean(bindings.current_state && bindings.current_state.trim().length > 0));
+const configFileDisplayName = $derived.by(
+  () => bindings.config_file_display || extractFileName(bindings.config_file) || undefined,
+);
 
   const formatSavedAt = (value: unknown): string | undefined => {
     if (typeof value === "string" && value) {
@@ -192,6 +208,7 @@ const normalizedPreviewData = $derived.by(() => {
 
     if (fileName) {
       bindingHandlers.writeConfigFile(fileName);
+      bindingHandlers.writeConfigFileDisplay(extractFileName(fileName) ?? fileName);
       loadedConfigPath = fileName;
       lastLoadedFileName = fileName;
     }
@@ -318,6 +335,13 @@ const normalizedPreviewData = $derived.by(() => {
     }
   });
 
+  // config_file_display sync
+  $effect(() => {
+    if (lastWrittenConfigFileDisplay !== bindings.config_file_display) {
+      bindingHandlers.writeConfigFileDisplay(bindings.config_file_display);
+    }
+  });
+
   // current_state and metadata summary
   $effect(() => {
     const raw = bindings.current_state;
@@ -344,7 +368,7 @@ const normalizedPreviewData = $derived.by(() => {
     const savedAtLabel = lastSavedAt ? formatSavedAt(lastSavedAt) : undefined;
 
     loadedConfigSummary = {
-      name: bindings.config_file || lastLoadedFileName || loadedConfigSummary?.name || "Config loaded",
+      name: configFileDisplayName || lastLoadedFileName || loadedConfigSummary?.name || "Config loaded",
       savedAt: savedAtLabel,
       version: bindings.version ?? undefined,
       rawText: raw,
@@ -381,6 +405,7 @@ const normalizedPreviewData = $derived.by(() => {
       bindingHandlers.writeBaselineState("");
       bindingHandlers.writeVersion("");
       bindingHandlers.writeConfigFile("");
+      bindingHandlers.writeConfigFileDisplay("");
       lastSavedAt = undefined;
       loadedConfigSummary = undefined;
       previewFromLoaded = false;
@@ -398,6 +423,7 @@ const normalizedPreviewData = $derived.by(() => {
     bindingHandlers.writeError("");
     resetPreviewState();
     loadedConfigPath = undefined;
+    bindingHandlers.writeConfigFileDisplay("");
   };
 
   const handleLoadConfig = () => {
@@ -432,6 +458,7 @@ const normalizedPreviewData = $derived.by(() => {
     }
     if (summaryName) {
       bindingHandlers.writeConfigFile(summaryName);
+      bindingHandlers.writeConfigFileDisplay(extractFileName(summaryName) ?? summaryName);
     }
 
     lastSavedAt = normalized.savedAt;
@@ -532,7 +559,7 @@ const normalizedPreviewData = $derived.by(() => {
             rawConfig={bindings.current_state}
             baselineConfig={baselineParsed}
             defaultFileName={
-              bindings.config_file || loadedConfigPath || lastLoadedFileName || "config.json"
+              configFileDisplayName || loadedConfigPath || lastLoadedFileName || "config.json"
             }
             dirty={isDirty}
             currentVersion={selectedConfigVersion}
@@ -570,7 +597,7 @@ const normalizedPreviewData = $derived.by(() => {
           </p>
           {#if loadedConfigSummary}
             <p class="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {bindings.config_file || loadedConfigSummary.name}
+              {configFileDisplayName || loadedConfigSummary.name}
             </p>
             {#if loadedConfigSummary.savedAt || bindings.version}
               <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">

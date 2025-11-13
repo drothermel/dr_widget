@@ -161,7 +161,9 @@
     lastSavedMessage = "";
 
     const timestamp = new Date().toISOString();
-    const normalizedVersion = versionInput?.trim() ? versionInput.trim() : "default_v0";
+    const trimmedInput = versionInput?.trim();
+    const fallbackVersion = currentVersion?.trim();
+    const normalizedVersion = trimmedInput || fallbackVersion || "default_v0";
     const payload = {
       version: normalizedVersion,
       saved_at: timestamp,
