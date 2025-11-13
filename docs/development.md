@@ -15,14 +15,14 @@ uv sync            # optional: sets up Python deps from pyproject
 - `npx svelte-check --tsconfig src/dr_widget/widgets/config_file_manager/tsconfig.json` – Type-check `.svelte` files.
 - The Config File Manager workspace also enables Vite’s React plugin to support the graph-style JSON preview. `bun install` pulls in `react`, `react-dom`, `reaflow`, and `react-zoom-pan-pinch`; no extra setup is required beyond the standard Bun install.
 
-The widget uses Tailwind v4, shadcn-svelte components, and the helper `use-file-bindings` hook for AnyWidget bindings. Shared UI lives in `src/lib/components`.
+Widget state is synchronized via `$lib/hooks/use-file-bindings`. Every traitlet (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `files`, `file_count`, `error`) gets a “last written” tracker, a write callback, and a `$effect` that mirrors changes back to Python to keep Marimo reactive. Shared UI lives in `src/lib/components`.
 
 ## 3. Python Packaging & Notebook Loop
 
 - `uv build` – Creates `dist/*.whl` and `dist/*.tar.gz` that include the latest `static/` assets.
 - `marimo run notebooks/config_file_manager_widget.py` – Runs the notebook demo inside the repo. This is the quickest integration test.
 
-Traitlet updates (`files`, `file_count`, `error`) automatically sync between Python and Svelte; use the notebook to validate that syncing works end-to-end.
+The AnyWidget exposes helper properties (`current_data`, `baseline_data`, `is_dirty`). Keep an eye on the `baseline_state` ↔ `current_state` comparison and the `version` badge inside the notebook to ensure reactivity stayed intact after changes.
 
 ## 4. Adding a New Widget
 
@@ -33,7 +33,9 @@ Traitlet updates (`files`, `file_count`, `error`) automatically sync between Pyt
 
 ## 5. Testing Checklist
 
-- Manual smoke test in the Vite dev server (drag/drop interactions, error states).
+- Manual smoke test in the Vite dev server (drag/drop interactions, error states, version editing, dirty badge toggling).
+- Load both legacy (“`selections`”-style) and new (“`data`”-wrapped) configs via the notebook; verify migration.
+- Create/save a config and confirm the downloaded/written file matches `{version,saved_at,data}`.
 - `npx svelte-check` for type errors.
 - `bun run build` to ensure the bundle compiles without warnings.
 - `uv build` and inspect the wheel (`unzip -l dist/*.whl`) to confirm assets are packaged.
