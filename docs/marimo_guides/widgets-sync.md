@@ -36,27 +36,71 @@ widget.current_state  # traitlet that will stay synced via write-back
 ```svelte
 <!-- ConfigFileManager.svelte -->
 <script lang="ts">
-  import { createFileBindingHandlers } from "./use-file-bindings";
+  import { createFileBindingHandlers, type FileBinding } from "$lib/hooks/use-file-bindings";
 
-  const bindings = $props.bindings; // traitlets from Python
+  const { bindings } = $props<{ bindings: FileBinding }>();
+  const maxFiles = 1;
+
   let lastWrittenCurrentState = $state<string | null | undefined>(undefined);
+  let lastWrittenBaselineState = $state<string | null | undefined>(undefined);
+  let lastWrittenVersion = $state<string | null | undefined>(undefined);
+  let lastWrittenConfigFile = $state<string | null | undefined>(undefined);
+  let lastWrittenConfigFileDisplay = $state<string | null | undefined>(undefined);
 
   const bindingHandlers = createFileBindingHandlers({
     bindings,
+    maxFiles,
     writeCurrentStateCallback: (contents) => {
       lastWrittenCurrentState = contents;
     },
+    writeBaselineStateCallback: (contents) => {
+      lastWrittenBaselineState = contents;
+    },
+    writeVersionCallback: (version) => {
+      lastWrittenVersion = version;
+    },
+    writeConfigFileCallback: (path) => {
+      lastWrittenConfigFile = path;
+    },
+    writeConfigFileDisplayCallback: (path) => {
+      lastWrittenConfigFileDisplay = path;
+    },
   });
 
+  // Repeat this guard for every traitlet that needs two-way sync.
   $effect(() => {
     if (lastWrittenCurrentState !== bindings.current_state) {
       bindingHandlers.writeCurrentState(bindings.current_state);
     }
   });
+
+  $effect(() => {
+    if (lastWrittenBaselineState !== bindings.baseline_state) {
+      bindingHandlers.writeBaselineState(bindings.baseline_state);
+    }
+  });
+
+  $effect(() => {
+    if (lastWrittenVersion !== bindings.version) {
+      bindingHandlers.writeVersion(bindings.version);
+    }
+  });
+
+  $effect(() => {
+    if (lastWrittenConfigFile !== bindings.config_file) {
+      bindingHandlers.writeConfigFile(bindings.config_file);
+    }
+  });
+
+  $effect(() => {
+    if (lastWrittenConfigFileDisplay !== bindings.config_file_display) {
+      bindingHandlers.writeConfigFileDisplay(bindings.config_file_display);
+    }
+  });
 </script>
 ```
 
-This snippet highlights the only moving parts: track the last value, call the callback before touching the traitlet, and gate the write-back in `$effect`.
+This snippet mirrors the current widget: track a `lastWritten*` value per traitlet, update each tracker via callbacks before touching the binding, and gate every write-back in its own `$effect`. All shared helpers live under `$lib/...`, so new widgets can reuse the same logic without fiddling with relative paths.
 
 ## The Problem
 
@@ -106,21 +150,31 @@ let lastWrittenCurrentState = $state<string | undefined | null>(undefined);
 
 This variable lives **only in Svelte**, not synced as a traitlet. It tracks the last value Svelte wrote to the binding.
 
-### 2. Write Callback (Update Tracker Before Writing)
+### 2. Write Callbacks (Update Trackers Before Writing)
 
 ```typescript
-const writeCurrentStateCallback = (contents?: string | null) => {
-    lastWrittenCurrentState = contents;
-};
-
 const bindingHandlers = createFileBindingHandlers({
     bindings,
     maxFiles,
-    writeCurrentStateCallback,
+    writeCurrentStateCallback: (contents) => {
+        lastWrittenCurrentState = contents;
+    },
+    writeBaselineStateCallback: (contents) => {
+        lastWrittenBaselineState = contents;
+    },
+    writeVersionCallback: (version) => {
+        lastWrittenVersion = version;
+    },
+    writeConfigFileCallback: (path) => {
+        lastWrittenConfigFile = path;
+    },
+    writeConfigFileDisplayCallback: (path) => {
+        lastWrittenConfigFileDisplay = path;
+    },
 });
 ```
 
-Whenever we write to the traitlet, we **first** record what we're about to write in `lastWrittenCurrentState`.
+Each traitlet we sync exposes its own callback so we can record the new value **before** the shared helper mutates the binding. Add/remove callbacks here whenever you introduce new Python traits.
 
 ### 3. The Write Function (use-file-bindings.ts)
 
@@ -148,6 +202,18 @@ $effect(() => {
 ```
 
 This effect runs whenever `bindings.current_state` changes. It asks: "Did I write this value myself, or did it come from Python?"
+
+### 5. Current Traitlet Map (Config File Manager)
+
+| Python traitlet         | Svelte tracker                | Callback prop                     | Handler that writes back              |
+| ----------------------- | ----------------------------- | --------------------------------- | ------------------------------------ |
+| `current_state`         | `lastWrittenCurrentState`     | `writeCurrentStateCallback`       | `bindingHandlers.writeCurrentState`  |
+| `baseline_state`        | `lastWrittenBaselineState`    | `writeBaselineStateCallback`      | `bindingHandlers.writeBaselineState` |
+| `version`               | `lastWrittenVersion`          | `writeVersionCallback`            | `bindingHandlers.writeVersion`       |
+| `config_file`           | `lastWrittenConfigFile`       | `writeConfigFileCallback`         | `bindingHandlers.writeConfigFile`    |
+| `config_file_display`   | `lastWrittenConfigFileDisplay`| `writeConfigFileDisplayCallback`  | `bindingHandlers.writeConfigFileDisplay` |
+
+This table reflects the active widget, but the pattern generalizes—add a new row whenever the Python class exposes another synced traitlet that should participate in Marimo reactivity.
 
 ## The Complete Flow
 
