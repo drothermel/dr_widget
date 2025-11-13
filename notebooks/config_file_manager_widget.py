@@ -32,9 +32,9 @@ def _():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
-    widget = mo.ui.anywidget(ConfigFileManager(config_dict={"harvest_window": False}, version="exp_v1"))
+    widget = mo.ui.anywidget(ConfigFileManager(config_file="exp_v2.json"))
     widget
     return (widget,)
 
