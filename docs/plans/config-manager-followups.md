@@ -1,8 +1,8 @@
 # Config Manager Follow-Ups
 
 **Created:** 2025-11-13
-**Last Updated:** 2025-11-16 6:32 PM
-**Status:** Saving now promotes the written file to the “loaded” config—bindings stay canonicalized and every viewer re-renders with the just-saved metadata/path so there’s no mismatch between tabs.
+**Last Updated:** 2025-11-16 8:05 PM
+**Status:** Saving promotes the written file to the “loaded” config and UI polish (like raw version labels) keeps Browse/View in lockstep with Save—no mismatched metadata or extra prefixes remain.
 *Note: timestamp each element with last updated time in EST.*
 
 ## In Progress
@@ -53,3 +53,6 @@
 6. **Treat saved configs as newly loaded configs** (2025-11-16 6:32 PM)
    - `SaveConfigPanel` writes `config_file`/`config_file_display` before updating `saved_at`, allowing the parent widget to snapshot the latest metadata immediately.
    - `ConfigFileManager.svelte` captures that metadata as the authoritative `loadedMetadataExtras`, so Browse/View show the just-saved path/version and defaults now follow the most recent save.
+
+7. **Polish version badge copy** (2025-11-16 8:05 PM)
+   - Removed the hard-coded `v` prefix from every version badge so semantic version strings display verbatim across Browse, View, and the main card.
