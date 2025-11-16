@@ -144,6 +144,12 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       lastLoadedFileName ||
       "config.json",
   );
+  const defaultSaveLabel = $derived.by(
+    () =>
+      bindings.config_file ||
+      loadedConfigPath ||
+      defaultSaveTarget,
+  );
 
   $effect(() => {
     const latestPath = bindings.config_file?.trim();
@@ -460,6 +466,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
             rawConfig={bindings.current_state}
             baselineConfig={baselineParsed}
             defaultFileName={defaultSaveTarget}
+            saveTargetLabel={defaultSaveLabel}
             dirty={isDirty}
             currentVersion={selectedConfigVersion}
             canEditVersion={canEditSelectedConfigVersion}

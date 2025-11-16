@@ -26,6 +26,7 @@
     createWritable: () => Promise<{
       write: (data: Blob | BufferSource | string) => Promise<void>;
       close: () => Promise<void>;
+      abort?: () => Promise<void>;
     }>;
     getFile?: () => Promise<File>;
     requestPermission?: (options?: { mode?: "read" | "readwrite" }) => Promise<PermissionState>;
@@ -41,6 +42,7 @@
     rawConfig,
     baselineConfig,
     defaultFileName = "config.json",
+    saveTargetLabel,
     dirty = false,
     currentVersion = "",
     canEditVersion = false,
@@ -49,6 +51,7 @@
     rawConfig?: string;
     baselineConfig?: unknown;
     defaultFileName?: string;
+    saveTargetLabel?: string;
     dirty?: boolean;
     currentVersion?: string;
     canEditVersion?: boolean;
@@ -115,7 +118,6 @@
     return trimmedCandidate;
   };
 
-  let fileHandle = $state<BrowserFileHandle | null>(null);
   let chosenFileName = $state(defaultFileName);
   let lastSavedMessage = $state("");
   let saveError = $state("");
@@ -155,18 +157,24 @@
       : undefined;
 
   const supportsFileSystemAccess = Boolean(fsWindow?.showSaveFilePicker);
-  const inputId = `save-config-${Math.random().toString(36).slice(2)}`;
   const versionInputId = `config-version-${Math.random().toString(36).slice(2)}`;
+  const defaultSaveLabel = $derived.by(() => {
+    const explicitLabel = saveTargetLabel?.trim();
+    if (explicitLabel) return explicitLabel;
+    const fileName = defaultFileName?.trim();
+    if (fileName) return fileName;
+    return "config.json";
+  });
 
   $effect(() => {
-    if (!fileHandle && defaultFileName && !chosenFileName) {
+    if (defaultFileName && !chosenFileName) {
       chosenFileName = defaultFileName;
     }
   });
 
   let lastDefaultFileName = $state(defaultFileName);
   $effect(() => {
-    if (defaultFileName !== lastDefaultFileName && !fileHandle) {
+    if (defaultFileName !== lastDefaultFileName) {
       chosenFileName = defaultFileName;
       lastDefaultFileName = defaultFileName;
     }
@@ -189,10 +197,6 @@
       ],
     };
 
-    if (fileHandle) {
-      options.startIn = fileHandle;
-    }
-
     return options;
   };
 
@@ -200,7 +204,6 @@
     if (!supportsFileSystemAccess || !fsWindow?.showSaveFilePicker) return null;
     try {
       const handle = await fsWindow.showSaveFilePicker(buildPickerOptions());
-      fileHandle = handle;
       if (handle.name) {
         chosenFileName = handle.name;
       }
@@ -295,7 +298,7 @@
 
     try {
       saving = true;
-      const handle = fileHandle ?? (await pickHandle());
+      const handle = await pickHandle();
       if (!handle) {
         saving = false;
         return;
@@ -318,7 +321,9 @@
       persistSuccessMetadata({ label: handle.name ?? downloadName });
       const savedLabel = (absoluteTargetPath && extractFileName(absoluteTargetPath)) ?? handle.name ?? downloadName;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
-      fileHandle = handle;
+      if (handle.name) {
+        chosenFileName = handle.name;
+      }
       saveError = "";
     } catch (error) {
       const message = (error as Error)?.message ?? "Failed to save config.";
@@ -361,18 +366,17 @@
       />
     </div>
 
-    <div class="space-y-2">
-      <label class="text-sm font-medium text-zinc-600 dark:text-zinc-300" for={inputId}>File name</label>
-      <input
-        class="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
-        id={inputId}
-        value={chosenFileName}
-        placeholder={defaultFileName}
-        oninput={(event) => (chosenFileName = (event.target as HTMLInputElement).value)}
-      />
-      {#if !supportsFileSystemAccess}
-        <p class="text-xs text-zinc-500 dark:text-zinc-400">
-          Your browser doesn’t support the File System Access API. We’ll download the file instead.
+    <div class="rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300">
+      {#if supportsFileSystemAccess}
+        <p>
+          Default file name:
+          <span class="font-medium text-zinc-900 dark:text-zinc-100">{defaultSaveLabel}</span>. You'll choose the folder after clicking
+          <span class="font-medium">Save</span>.
+        </p>
+      {:else}
+        <p>
+          Download name:
+          <span class="font-medium text-zinc-900 dark:text-zinc-100">{defaultSaveLabel}</span>. Your browser will download the file directly.
         </p>
       {/if}
     </div>
@@ -388,11 +392,6 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
-      {#if supportsFileSystemAccess}
-        <Button variant="outline" onclick={pickHandle} disabled={saving}>
-          Choose location…
-        </Button>
-      {/if}
       <Button onclick={handleSave} disabled={!rawConfig || saving}>
         {saving ? "Saving…" : supportsFileSystemAccess ? "Save" : "Download"}
       </Button>
