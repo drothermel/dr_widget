@@ -15,7 +15,7 @@ uv sync            # optional: sets up Python deps from pyproject
 - `npx svelte-check --tsconfig src/dr_widget/widgets/config_file_manager/tsconfig.json` – Type-check `.svelte` files.
 - The Config File Manager workspace also enables Vite’s React plugin to support the graph-style JSON preview. `bun install` pulls in `react`, `react-dom`, `reaflow`, and `react-zoom-pan-pinch`; no extra setup is required beyond the standard Bun install.
 
-Widget state is synchronized via `$lib/hooks/use-file-bindings`. Every traitlet (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `files`, `file_count`, `error`) gets a “last written” tracker, a write callback, and a `$effect` that mirrors changes back to Python to keep Marimo reactive. Shared UI lives in `src/lib/components`.
+Widget state is synchronized via `$lib/hooks/use-file-bindings`. The helper writers (`writeBindingBaselineState`, `writeBindingConfigFile`, `writeBindingSavedAt`, etc.) are the single way UI components mutate traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) so AnyWidget sees consistent updates. Shared UI lives in `src/lib/components`.
 
 ## 3. Python Packaging & Notebook Loop
 

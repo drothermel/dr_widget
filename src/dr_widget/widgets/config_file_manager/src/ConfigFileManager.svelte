@@ -22,40 +22,9 @@ const { bindings } = $props<{
 }>();
 
 const maxFiles = 1;
-let lastWrittenCurrentState = $state<string | undefined | null>(undefined);
-let lastWrittenBaselineState = $state<string | undefined | null>(undefined);
-let lastWrittenVersion = $state<string | undefined | null>(undefined);
-let lastWrittenConfigFile = $state<string | undefined | null>(undefined);
-let lastWrittenConfigFileDisplay = $state<string | undefined | null>(undefined);
-
-const writeCurrentStateCallback = (contents?: string | null) => {
-  lastWrittenCurrentState = contents;
-};
-
-const writeBaselineStateCallback = (contents?: string | null) => {
-  lastWrittenBaselineState = contents;
-};
-
-const writeVersionCallback = (version?: string | null) => {
-  lastWrittenVersion = version;
-};
-
-const writeConfigFileCallback = (path?: string | null) => {
-  lastWrittenConfigFile = path;
-};
-
-const writeConfigFileDisplayCallback = (path?: string | null) => {
-  lastWrittenConfigFileDisplay = path;
-};
-
 const bindingHandlers = createFileBindingHandlers({
   bindings,
   maxFiles,
-  writeCurrentStateCallback,
-  writeBaselineStateCallback,
-  writeVersionCallback,
-  writeConfigFileCallback,
-  writeConfigFileDisplayCallback,
 });
 
 const parseJsonObject = (value?: string | null) => {
@@ -89,8 +58,6 @@ const extractFileName = (value?: string | null) => {
   if (parts.length === 0) return value;
   return parts[parts.length - 1];
 };
-
-let lastSavedAt = $state<string | undefined>(undefined);
 
 const parsedFiles = $derived(bindingHandlers.readBoundFiles());
 const baselineParsed = $derived.by(() => parseJsonObject(bindings.baseline_state));
@@ -140,59 +107,41 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
   let showLoadedPreview = $state(false);
   let previewFromLoaded = $state(false);
   let loadedConfigPath = $state<string | undefined>(undefined);
+  let lastObservedSavedAt = $state<string | undefined>(bindings.saved_at ?? undefined);
   const defaultSaveTarget = $derived.by(
-    () => bindings.config_file || loadedConfigPath || lastLoadedFileName || "config.json",
+    () =>
+      bindings.config_file_display ||
+      bindings.config_file ||
+      loadedConfigPath ||
+      lastLoadedFileName ||
+      "config.json",
   );
 
-  const handleSaveSuccess = ({
-    fileName,
-    timestamp,
-  }: {
-    fileName?: string;
-    timestamp: string;
-  }) => {
-    const raw = bindings.current_state;
-
-    if (fileName) {
-      const displayName = extractFileName(fileName) ?? fileName;
-      bindingHandlers.writeConfigFile(fileName);
-      bindingHandlers.writeConfigFileDisplay(displayName);
-      loadedConfigPath = fileName;
-      lastLoadedFileName = displayName;
+  $effect(() => {
+    const latestPath = bindings.config_file?.trim();
+    if (latestPath && latestPath !== loadedConfigPath) {
+      loadedConfigPath = latestPath;
     }
+  });
 
-    bindingHandlers.writeBaselineState(raw ?? "");
-    lastSavedAt = timestamp;
+  $effect(() => {
+    const latestDisplay = bindings.config_file_display?.trim();
+    if (latestDisplay && latestDisplay !== lastLoadedFileName) {
+      lastLoadedFileName = latestDisplay;
+    }
+  });
 
-    const formattedSavedAt = formatSavedAt(timestamp) ?? timestamp;
-
-    const parsed = parseJsonObject(raw) ?? {};
-    const wrappedPayload = buildWrappedPayload({
-      data: parsed,
-      version: bindings.version ?? undefined,
-      savedAt: timestamp,
-    });
-    const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
-
-    loadedConfigSummary = {
-      name: fileName ?? loadedConfigSummary?.name ?? "Config saved",
-      savedAt: formattedSavedAt,
-      version: bindings.version ?? loadedConfigSummary?.version,
-      rawText: raw ?? loadedConfigSummary?.rawText,
-      parsed: parsed ?? loadedConfigSummary?.parsed,
-      wrappedRawText: wrappedJson,
-      wrappedParsed: wrappedPayload,
-    };
-
-    previewFromLoaded = false;
-    showLoadedPreview = false;
-    bindingHandlers.writeError("");
-  };
-
-
-  const handleSaveError = (message: string) => {
-    bindingHandlers.writeError(message);
-  };
+  $effect(() => {
+    const savedAt = bindings.saved_at?.trim() ?? "";
+    if (savedAt && savedAt !== lastObservedSavedAt) {
+      previewFromLoaded = false;
+      showLoadedPreview = false;
+      bindingHandlers.writeError("");
+      lastObservedSavedAt = savedAt;
+    } else if (!savedAt && lastObservedSavedAt) {
+      lastObservedSavedAt = undefined;
+    }
+  });
 
   const computeByteSize = (input: string): number => {
     if (typeof TextEncoder !== "undefined") {
@@ -232,54 +181,10 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
 
   const previewVersion = $derived.by(() => normalizedPreview?.version);
 
-  const handleSelectedVersionChange = (nextVersion: string) => {
-    const trimmed = nextVersion.trim();
-    if (!trimmed) {
-      bindingHandlers.writeVersion("");
-      return;
-    }
-    bindingHandlers.writeVersion(trimmed);
-  };
-
   // managerOpen, isDirty
   $effect(() => {
     if (!managerOpen) return;
     activeTab = isDirty ? "save" : "find";
-  });
-
-  // current_state sync
-  $effect(() => {
-    if (lastWrittenCurrentState !== bindings.current_state) {
-      bindingHandlers.writeCurrentState(bindings.current_state);
-    }
-  });
-
-  // baseline_state sync
-  $effect(() => {
-    if (lastWrittenBaselineState !== bindings.baseline_state) {
-      bindingHandlers.writeBaselineState(bindings.baseline_state);
-    }
-  });
-
-  // version sync
-  $effect(() => {
-    if (lastWrittenVersion !== bindings.version) {
-      bindingHandlers.writeVersion(bindings.version);
-    }
-  });
-
-  // config_file sync
-  $effect(() => {
-    if (lastWrittenConfigFile !== bindings.config_file) {
-      bindingHandlers.writeConfigFile(bindings.config_file);
-    }
-  });
-
-  // config_file_display sync
-  $effect(() => {
-    if (lastWrittenConfigFileDisplay !== bindings.config_file_display) {
-      bindingHandlers.writeConfigFileDisplay(bindings.config_file_display);
-    }
   });
 
   // current_state and metadata summary
@@ -291,7 +196,6 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
       loadedConfigPath = undefined;
-      lastSavedAt = undefined;
       if (!managerOpen) {
         resetPreviewState();
       }
@@ -299,14 +203,18 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     }
 
     const parsed = parseJsonObject(raw) ?? {};
+    const savedAtValue = (() => {
+      const value = bindings.saved_at?.trim();
+      return value ? value : undefined;
+    })();
     const wrappedPayload = buildWrappedPayload({
       data: parsed,
       version: bindings.version ?? undefined,
-      savedAt: lastSavedAt ?? undefined,
+      savedAt: savedAtValue,
     });
     const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
 
-    const savedAtLabel = lastSavedAt ? formatSavedAt(lastSavedAt) : undefined;
+    const savedAtLabel = savedAtValue ? formatSavedAt(savedAtValue) : undefined;
 
     loadedConfigSummary = {
       name: configFileDisplayName || lastLoadedFileName || loadedConfigSummary?.name || "Config loaded",
@@ -349,7 +257,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       bindingHandlers.writeVersion("");
       bindingHandlers.writeConfigFile("");
       bindingHandlers.writeConfigFileDisplay("");
-      lastSavedAt = undefined;
+      bindingHandlers.writeSavedAt("");
       loadedConfigSummary = undefined;
       previewFromLoaded = false;
       showLoadedPreview = false;
@@ -367,6 +275,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     resetPreviewState();
     loadedConfigPath = undefined;
     bindingHandlers.writeConfigFileDisplay("");
+    bindingHandlers.writeSavedAt("");
   };
 
   const handleLoadConfig = () => {
@@ -410,7 +319,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       bindingHandlers.writeConfigFileDisplay(extractFileName(summaryName) ?? summaryName);
     }
 
-    lastSavedAt = normalized.savedAt;
+    bindingHandlers.writeSavedAt(normalized.savedAt ?? "");
 
     loadedConfigSummary = {
       name: summaryName,
@@ -516,9 +425,6 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
             dirty={isDirty}
             currentVersion={selectedConfigVersion}
             canEditVersion={canEditSelectedConfigVersion}
-            onSaveSuccess={handleSaveSuccess}
-            onSaveError={handleSaveError}
-            onVersionChange={handleSelectedVersionChange}
           />
         </Tabs.Content>
       </Tabs.Root>

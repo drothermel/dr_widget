@@ -110,16 +110,18 @@ def _load_config_from_file(path: Path) -> Dict[str, Any]:
     return _normalize_payload(parsed)
 
 
-def _write_config_to_file(path: Path, *, data: Dict[str, Any], version: str) -> None:
+def _write_config_to_file(path: Path, *, data: Dict[str, Any], version: str) -> str:
+    saved_at = _utc_timestamp()
     payload = {
         "version": version,
-        "saved_at": _utc_timestamp(),
+        "saved_at": saved_at,
         "data": data,
     }
 
     serialized = json.dumps(payload, indent=2, sort_keys=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(serialized + "\n", encoding="utf-8")
+    return saved_at
 
 
 def _file_binding_entry(path: Path) -> Dict[str, Any]:
@@ -147,6 +149,7 @@ class ConfigFileManager(anywidget.AnyWidget):
     config_file = traitlets.Unicode("").tag(sync=True)
     config_file_display = traitlets.Unicode("").tag(sync=True)
     version = traitlets.Unicode("default_v0").tag(sync=True)
+    saved_at = traitlets.Unicode("").tag(sync=True)
     files = traitlets.Unicode("[]").tag(sync=True)
     file_count = traitlets.Int(0).tag(sync=True)
     error = traitlets.Unicode("").tag(sync=True)
@@ -165,6 +168,7 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.current_state = ""
         self.baseline_state = ""
         self.config_file = ""
+        self.saved_at = ""
 
         if config_file is None and config_dict is None:
             return
@@ -206,6 +210,11 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.config_file = str(path)
         self.current_state = serialized_state
         self.baseline_state = serialized_state
+        saved_at_value = payload.get("saved_at")
+        if saved_at_value:
+            self.saved_at = str(saved_at_value)
+        else:
+            self.saved_at = ""
 
         file_entry = _file_binding_entry(path)
         self.files = json.dumps([file_entry])

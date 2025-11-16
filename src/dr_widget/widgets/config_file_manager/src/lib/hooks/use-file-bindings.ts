@@ -15,6 +15,102 @@ export type FileBinding = {
   config_file?: string | null;
   config_file_display?: string | null;
   version?: string | null;
+  saved_at?: string | null;
+};
+
+const coerceString = (value?: string | null) =>
+  typeof value === "string" ? value : (value ?? "");
+
+export const normalizeBoundFiles = (
+  files: unknown,
+  limit?: number,
+): BoundFile[] => {
+  if (!Array.isArray(files)) return [];
+
+  const validItems = files
+    .filter(
+      (item) =>
+        item &&
+        typeof item.name === "string" &&
+        typeof item.size === "number" &&
+        typeof item.type === "string",
+    )
+    .map((item) => ({
+      name: item.name,
+      size: item.size,
+      type: item.type,
+    }));
+
+  const limitSize = typeof limit === "number" ? limit : validItems.length;
+  return validItems.slice(0, limitSize);
+};
+
+export const readBindingFiles = (bindings: FileBinding): BoundFile[] => {
+  if (!bindings?.files) return [];
+  try {
+    const parsed = JSON.parse(bindings.files) as unknown;
+    return normalizeBoundFiles(parsed);
+  } catch {
+    return [];
+  }
+};
+
+export const writeBindingFiles = (
+  bindings: FileBinding,
+  files: BoundFile[],
+): void => {
+  const normalized = normalizeBoundFiles(files);
+  bindings.files = JSON.stringify(normalized);
+  bindings.file_count = normalized.length;
+};
+
+export const writeBindingCurrentState = (
+  bindings: FileBinding,
+  contents?: string | null,
+): void => {
+  bindings.current_state = coerceString(contents);
+};
+
+export const writeBindingBaselineState = (
+  bindings: FileBinding,
+  contents?: string | null,
+): void => {
+  bindings.baseline_state = coerceString(contents);
+};
+
+export const writeBindingVersion = (
+  bindings: FileBinding,
+  version?: string | null,
+): void => {
+  bindings.version = coerceString(version);
+};
+
+export const writeBindingConfigFile = (
+  bindings: FileBinding,
+  path?: string | null,
+): void => {
+  bindings.config_file = coerceString(path);
+};
+
+export const writeBindingConfigFileDisplay = (
+  bindings: FileBinding,
+  path?: string | null,
+): void => {
+  bindings.config_file_display = coerceString(path);
+};
+
+export const writeBindingSavedAt = (
+  bindings: FileBinding,
+  timestamp?: string | null,
+): void => {
+  bindings.saved_at = coerceString(timestamp);
+};
+
+export const writeBindingError = (
+  bindings: FileBinding,
+  error?: string | null,
+): void => {
+  bindings.error = coerceString(error);
 };
 
 type UploadHandler = FileDropZoneProps["onUpload"];
@@ -23,57 +119,21 @@ type RejectHandler = NonNullable<FileDropZoneProps["onFileRejected"]>;
 export function createFileBindingHandlers({
   bindings,
   maxFiles,
-  writeCurrentStateCallback,
-  writeBaselineStateCallback,
-  writeVersionCallback,
-  writeConfigFileCallback,
-  writeConfigFileDisplayCallback,
 }: {
   bindings: FileBinding;
   maxFiles?: number;
-  writeCurrentStateCallback?: (contents?: string | null) => void;
-  writeBaselineStateCallback?: (contents?: string | null) => void;
-  writeVersionCallback?: (version?: string | null) => void;
-  writeConfigFileCallback?: (path?: string | null) => void;
-  writeConfigFileDisplayCallback?: (path?: string | null) => void;
 }) {
   const maxFileCount = Number.isFinite(maxFiles) ? maxFiles : undefined;
 
-  const normalizeFiles = (files: unknown): BoundFile[] => {
-    if (!Array.isArray(files)) return [];
-
-    const validItems = files
-      .filter(
-        (item) =>
-          item &&
-          typeof item.name === "string" &&
-          typeof item.size === "number" &&
-          typeof item.type === "string",
-      )
-      .map((item) => ({
-        name: item.name,
-        size: item.size,
-        type: item.type,
-      }));
-
-    const limit = maxFileCount ?? validItems.length;
-    return validItems.slice(0, limit);
+  const enforceLimit = (files: BoundFile[]): BoundFile[] => {
+    if (!maxFileCount) return files;
+    return files.slice(0, maxFileCount);
   };
 
-  const readBoundFiles = (): BoundFile[] => {
-    if (!bindings?.files) return [];
-    try {
-      const parsed = JSON.parse(bindings.files) as unknown;
-      return normalizeFiles(parsed);
-    } catch {
-      return [];
-    }
-  };
+  const readBoundFiles = (): BoundFile[] => readBindingFiles(bindings);
 
   const writeBoundFiles = (files: BoundFile[]): void => {
-    const normalized = normalizeFiles(files);
-    bindings.files = JSON.stringify(normalized);
-    bindings.file_count = normalized.length;
+    writeBindingFiles(bindings, enforceLimit(files));
   };
 
   const handleUpload: UploadHandler = async (files) => {
@@ -88,11 +148,11 @@ export function createFileBindingHandlers({
     if (nextFiles.length === 0) return;
 
     writeBoundFiles(nextFiles);
-    bindings.error = "";
+    writeBindingError(bindings, "");
   };
 
   const handleFileRejected: RejectHandler = ({ reason, file }) => {
-    bindings.error = `${file.name}: ${reason}`;
+    writeBindingError(bindings, `${file.name}: ${reason}`);
   };
 
   const removeFile = (index: number): void => {
@@ -101,37 +161,8 @@ export function createFileBindingHandlers({
     writeBoundFiles(current);
 
     if (current.length === 0) {
-      bindings.error = "";
+      writeBindingError(bindings, "");
     }
-  };
-
-  const writeCurrentState = (contents: string | null | undefined): void => {
-    writeCurrentStateCallback?.(contents);
-    bindings.current_state = contents ?? "";
-  };
-
-  const writeBaselineState = (contents: string | null | undefined): void => {
-    writeBaselineStateCallback?.(contents);
-    bindings.baseline_state = contents ?? "";
-  };
-
-  const writeVersion = (version: string | null | undefined): void => {
-    writeVersionCallback?.(version);
-    bindings.version = version ?? "";
-  };
-
-  const writeConfigFile = (path: string | null | undefined): void => {
-    writeConfigFileCallback?.(path);
-    bindings.config_file = path ?? "";
-  };
-
-  const writeConfigFileDisplay = (path: string | null | undefined): void => {
-    writeConfigFileDisplayCallback?.(path);
-    bindings.config_file_display = path ?? "";
-  };
-
-  const writeError = (error: string): void => {
-    bindings.error = error;
   };
 
   return {
@@ -141,11 +172,18 @@ export function createFileBindingHandlers({
     handleUpload,
     handleFileRejected,
     removeFile,
-    writeCurrentState,
-    writeBaselineState,
-    writeVersion,
-    writeConfigFile,
-    writeConfigFileDisplay,
-    writeError,
+    writeCurrentState: (contents?: string | null) =>
+      writeBindingCurrentState(bindings, contents),
+    writeBaselineState: (contents?: string | null) =>
+      writeBindingBaselineState(bindings, contents),
+    writeVersion: (version?: string | null) =>
+      writeBindingVersion(bindings, version),
+    writeConfigFile: (path?: string | null) =>
+      writeBindingConfigFile(bindings, path),
+    writeConfigFileDisplay: (path?: string | null) =>
+      writeBindingConfigFileDisplay(bindings, path),
+    writeSavedAt: (timestamp?: string | null) =>
+      writeBindingSavedAt(bindings, timestamp),
+    writeError: (error?: string | null) => writeBindingError(bindings, error),
   };
 }

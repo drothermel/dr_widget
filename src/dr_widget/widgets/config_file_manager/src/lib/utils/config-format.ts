@@ -4,7 +4,9 @@ export type NormalizedConfigPayload = {
   savedAt?: string;
 };
 
-export function normalizeConfigPayload(payload: unknown): NormalizedConfigPayload {
+export function normalizeConfigPayload(
+  payload: unknown,
+): NormalizedConfigPayload {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return { data: {} };
   }
@@ -13,7 +15,11 @@ export function normalizeConfigPayload(payload: unknown): NormalizedConfigPayloa
   const dataCandidate = record["data"];
   let data: Record<string, unknown>;
 
-  if (dataCandidate && typeof dataCandidate === "object" && !Array.isArray(dataCandidate)) {
+  if (
+    dataCandidate &&
+    typeof dataCandidate === "object" &&
+    !Array.isArray(dataCandidate)
+  ) {
     data = dataCandidate as Record<string, unknown>;
   } else if (
     record["selections"] &&
@@ -23,7 +29,9 @@ export function normalizeConfigPayload(payload: unknown): NormalizedConfigPayloa
     data = { selections: record["selections"] as Record<string, unknown> };
   } else {
     data = Object.fromEntries(
-      Object.entries(record).filter(([key]) => key !== "version" && key !== "saved_at"),
+      Object.entries(record).filter(
+        ([key]) => key !== "version" && key !== "saved_at",
+      ),
     );
   }
 

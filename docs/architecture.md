@@ -5,7 +5,7 @@ This project glues together three layers:
 1. **Python package (`src/dr_widget`)**
    - Exposes AnyWidget subclasses (e.g., `ConfigFileManager`) that notebooks instantiate.
    - Ship the compiled frontend bundle by pointing `_esm`/`_css` at files under `static/`.  
-   - Traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last saved payload for dirty detection, and `version`/`config_file` expose metadata directly to notebooks.
+   - Traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last persisted payload for dirty detection, `saved_at` exposes the last save timestamp, and `version`/`config_file` surface metadata directly to notebooks.
 
 2. **Widget workspace (`src/dr_widget/widgets/config_file_manager`)**
    - Bun workspace with its own `package.json`, Vite config, and Tailwind CSS.
@@ -30,7 +30,7 @@ ConfigFileManager (AnyWidget)  ── embeds ──▶  static/index.js (Svelte 
 ```
 
 - Python updates traitlets → AnyWidget serializes to JSON → Svelte reads via `bindings`.  
-- User actions in Svelte update bindings → AnyWidget pushes changes back to Python automatically.
+- User actions in Svelte update bindings → AnyWidget pushes changes back to Python automatically. Frontend code calls the helper writers in `use-file-bindings.ts` so panels such as `SaveConfigPanel` can update `baseline_state`, `config_file(_display)`, `version`, and `saved_at` without bespoke callbacks.
 
 ### Extending the Architecture
 

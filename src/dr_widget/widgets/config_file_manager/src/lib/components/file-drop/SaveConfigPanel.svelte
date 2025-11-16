@@ -4,12 +4,15 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
   import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
   import { buildWrappedPayload } from "$lib/utils/config-format";
-  import type { FileBinding } from "$lib/hooks/use-file-bindings";
-
-  type SaveResult = {
-    fileName?: string;
-    timestamp: string;
-  };
+  import {
+    writeBindingBaselineState,
+    writeBindingConfigFile,
+    writeBindingConfigFileDisplay,
+    writeBindingError,
+    writeBindingSavedAt,
+    writeBindingVersion,
+    type FileBinding,
+  } from "$lib/hooks/use-file-bindings";
 
   type SaveFilePickerOptions = {
     suggestedName?: string;
@@ -41,9 +44,6 @@
     dirty = false,
     currentVersion = "",
     canEditVersion = false,
-    onSaveSuccess,
-    onSaveError,
-    onVersionChange,
   } = $props<{
     bindings: FileBinding;
     rawConfig?: string;
@@ -52,9 +52,6 @@
     dirty?: boolean;
     currentVersion?: string;
     canEditVersion?: boolean;
-    onSaveSuccess?: (result: SaveResult) => void;
-    onSaveError?: (message: string) => void;
-    onVersionChange?: (version: string) => void;
   }>();
 
   const isAbsolutePath = (value?: string): boolean => {
@@ -215,7 +212,7 @@
       }
       const message = (error as Error)?.message ?? "Unable to choose file location.";
       saveError = message;
-      onSaveError?.(message);
+      writeBindingError(bindings, message);
       return null;
     }
   };
@@ -233,9 +230,10 @@
   };
 
   const handleSave = async () => {
-    if (!rawConfig) {
+    const latestRawConfig = bindings.current_state ?? rawConfig;
+    if (!latestRawConfig) {
       saveError = "No config data available to save.";
-      onSaveError?.(saveError);
+      writeBindingError(bindings, saveError);
       return;
     }
 
@@ -246,7 +244,7 @@
 
     if (!dataObject) {
       saveError = "Config JSON must be an object.";
-      onSaveError?.(saveError);
+      writeBindingError(bindings, saveError);
       return;
     }
 
@@ -257,6 +255,10 @@
     const trimmedInput = versionInput?.trim();
     const fallbackVersion = currentVersion?.trim();
     const normalizedVersion = trimmedInput || fallbackVersion || "default_v0";
+    if ((bindings.version ?? "") !== normalizedVersion) {
+      writeBindingVersion(bindings, normalizedVersion);
+      versionInput = normalizedVersion;
+    }
     const payload = {
       version: normalizedVersion,
       saved_at: timestamp,
@@ -268,9 +270,21 @@
     const fallbackName = absoluteTargetPath || "config.json";
     const downloadName = extractFileName(absoluteTargetPath) ?? fallbackName;
 
+    const persistSuccessMetadata = () => {
+      const baselineSource = bindings.current_state ?? latestRawConfig ?? "";
+      writeBindingBaselineState(bindings, baselineSource);
+      writeBindingSavedAt(bindings, timestamp);
+      if (absoluteTargetPath) {
+        const savedLabel = extractFileName(absoluteTargetPath) ?? downloadName;
+        writeBindingConfigFile(bindings, absoluteTargetPath);
+        writeBindingConfigFileDisplay(bindings, savedLabel);
+      }
+      writeBindingError(bindings, "");
+    };
+
     if (!supportsFileSystemAccess) {
       downloadFallback(serializedConfig, downloadName);
-      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
+      persistSuccessMetadata();
       lastSavedMessage = `Downloaded ${downloadName}`;
       return;
     }
@@ -289,15 +303,15 @@
       await writable.write(serializedConfig);
       await writable.close();
 
+      persistSuccessMetadata();
       const savedLabel = extractFileName(absoluteTargetPath) ?? handle.name;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
       fileHandle = handle;
-      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
       saveError = "";
     } catch (error) {
       const message = (error as Error)?.message ?? "Failed to save config.";
       saveError = message;
-      onSaveError?.(message);
+      writeBindingError(bindings, message);
     } finally {
       saving = false;
     }
@@ -329,7 +343,8 @@
         oninput={(event) => {
           const nextValue = (event.target as HTMLInputElement).value;
           versionInput = nextValue;
-          onVersionChange?.(nextValue);
+          const trimmed = nextValue.trim();
+          writeBindingVersion(bindings, trimmed || "");
         }}
       />
     </div>
