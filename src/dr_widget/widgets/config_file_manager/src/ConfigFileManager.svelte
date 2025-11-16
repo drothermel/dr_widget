@@ -568,7 +568,7 @@ const previewVersion = $derived.by(() => normalizedPreview?.version);
                 {/if}
                 {#if bindings.version}
                   <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
-                    v{bindings.version}
+                    {bindings.version}
                   </Badge>
                 {/if}
                 {#if isDirty}
