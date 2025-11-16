@@ -127,6 +127,7 @@ def _write_config_to_file(path: Path, *, data: Dict[str, Any], version: str) -> 
         "metadata": {
             "version": version,
             "saved_at": saved_at,
+            "save_path": str(path),
         },
         "data": data,
     }

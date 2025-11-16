@@ -1,8 +1,8 @@
 # Config Manager Follow-Ups
 
 **Created:** 2025-11-13
-**Last Updated:** 2025-11-16 3:20 PM
-**Status:** Save panel now mutates bindings directly (including the new `saved_at` trait); path normalization is wired through bindings, metadata now lives under its own dict, and dirty indicators account for metadata edits.
+**Last Updated:** 2025-11-16 6:32 PM
+**Status:** Saving now promotes the written file to the “loaded” config—bindings stay canonicalized and every viewer re-renders with the just-saved metadata/path so there’s no mismatch between tabs.
 *Note: timestamp each element with last updated time in EST.*
 
 ## In Progress
@@ -18,13 +18,11 @@
 
 ## Outstanding Tasks
 
-1. **Add save path to the file written metadata** (2025-11-13 9:07 AM)
+1. **Make it possible to "full height" the config preview** (2025-11-13 9:07 AM)
 
-2. **Make it possible to "full height" the config preview** (2025-11-13 9:07 AM)
+2. **Make it possible to edit the config in the config preview** (2025-11-13 9:07 AM)
 
-3. **Make it possible to edit the config in the config preview** (2025-11-13 9:07 AM)
-
-4. **Easy copy/update helper for notebooks**   (2025-11-13 8:30 AM)
+3. **Easy copy/update helper for notebooks**   (2025-11-13 8:30 AM)
    - Notebook authors currently hand-roll `json.loads(widget.current_state)` → mutate → `json.dumps`.  
    - Provide a small helper (Python function or documented pattern) that copies `current_data`, applies updates, and writes back, making “UI element updates widget” demos cleaner.
 
@@ -47,3 +45,11 @@
    - Python saves files as `{ "metadata": { version, saved_at }, "data": {...} }`, and `_normalize_payload` migrates any legacy files into that structure for free.
    - Shared helpers (`normalizeConfigPayload`, `buildWrappedPayload`) and the Svelte previews now operate on the nested metadata so notebook previews mirror on-disk structure.
    - `ConfigFileManager.svelte` snapshots metadata on each baseline update (ignoring `saved_at`), so changing version/metadata without touching data toggles the dirty badge and wrapped preview diff.
+
+5. **Unify metadata source across Save/Browse/View** (2025-11-16 5:45 PM)
+   - Introduced a reactive `bindingSaveMetadata` fallback so Browse/View previews recompute when bindings update, clearing any stale metadata after saves.
+   - `LoadedConfigSummary` now refreshes when metadata-only bindings change, so the "View Config" drawer mirrors the same `save_path` and version that the Save flow just wrote.
+
+6. **Treat saved configs as newly loaded configs** (2025-11-16 6:32 PM)
+   - `SaveConfigPanel` writes `config_file`/`config_file_display` before updating `saved_at`, allowing the parent widget to snapshot the latest metadata immediately.
+   - `ConfigFileManager.svelte` captures that metadata as the authoritative `loadedMetadataExtras`, so Browse/View show the just-saved path/version and defaults now follow the most recent save.

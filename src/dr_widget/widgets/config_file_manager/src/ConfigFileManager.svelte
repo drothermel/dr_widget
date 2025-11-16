@@ -121,23 +121,6 @@ const normalizedPreviewData = $derived.by(() => {
   return JSON.stringify(normalizedPreview.data, null, 2);
 });
 const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
-const previewWrappedPayload = $derived.by(() => {
-  if (!normalizedPreview) return undefined;
-  const previewMetadata = hasMetadataEntries(normalizedPreview.metadata)
-    ? normalizedPreview.metadata
-    : hasMetadataEntries(loadedMetadataExtras)
-      ? loadedMetadataExtras
-      : undefined;
-  return buildWrappedPayload({
-    data: normalizedPreview.data,
-    version: normalizedPreview.version ?? bindings.version ?? undefined,
-    savedAt: normalizedPreview.savedAt ?? bindings.saved_at ?? undefined,
-    metadata: previewMetadata,
-  });
-});
-const previewWrappedJson = $derived.by(() =>
-  previewWrappedPayload ? JSON.stringify(previewWrappedPayload, null, 2) : undefined,
-);
   let managerOpen = $state(false);
   let activeTab = $state("find");
   let lastLoadedFileName = $state<string | undefined>(undefined);
@@ -172,6 +155,45 @@ const previewWrappedJson = $derived.by(() =>
       defaultSaveTarget,
   );
 
+const computeBindingMetadataFallback = () => {
+  const displayLabel = bindings.config_file_display?.trim();
+  if (displayLabel) {
+    return { save_path: displayLabel };
+  }
+  const resolvedPath = bindings.config_file?.trim();
+  if (resolvedPath) {
+    return { save_path: resolvedPath };
+  }
+  const fallbackLabel = loadedConfigPath || lastLoadedFileName;
+  if (fallbackLabel) {
+    return { save_path: fallbackLabel };
+  }
+  return undefined;
+};
+
+const bindingSaveMetadata = $derived.by(() => {
+  if (hasMetadataEntries(loadedMetadataExtras)) {
+    return loadedMetadataExtras;
+  }
+  return computeBindingMetadataFallback();
+});
+
+const previewWrappedPayload = $derived.by(() => {
+  if (!normalizedPreview) return undefined;
+  const previewMetadata = hasMetadataEntries(normalizedPreview.metadata)
+    ? normalizedPreview.metadata
+    : bindingSaveMetadata;
+  return buildWrappedPayload({
+    data: normalizedPreview.data,
+    version: normalizedPreview.version ?? bindings.version ?? undefined,
+    savedAt: normalizedPreview.savedAt ?? bindings.saved_at ?? undefined,
+    metadata: previewMetadata,
+  });
+});
+const previewWrappedJson = $derived.by(() =>
+  previewWrappedPayload ? JSON.stringify(previewWrappedPayload, null, 2) : undefined,
+);
+
   $effect(() => {
     const latestPath = bindings.config_file?.trim();
     if (latestPath && latestPath !== loadedConfigPath) {
@@ -194,9 +216,16 @@ const previewWrappedJson = $derived.by(() =>
       bindingHandlers.writeError("");
       lastObservedSavedAt = savedAt;
       lastSavedMetadata = buildMetadataSnapshot();
+      const latestMetadata = computeBindingMetadataFallback();
+      loadedMetadataExtras = latestMetadata ?? {};
+      const fallbackPath = bindings.config_file?.trim() || bindings.config_file_display?.trim();
+      if (fallbackPath) {
+        loadedConfigPath = fallbackPath;
+      }
     } else if (!savedAt && lastObservedSavedAt) {
       lastObservedSavedAt = undefined;
       lastSavedMetadata = buildMetadataSnapshot();
+      loadedMetadataExtras = {};
     }
   });
 
@@ -273,7 +302,7 @@ const previewVersion = $derived.by(() => normalizedPreview?.version);
       const value = bindings.saved_at?.trim();
       return value ? value : undefined;
     })();
-    const metadataExtras = hasMetadataEntries(loadedMetadataExtras) ? loadedMetadataExtras : undefined;
+    const metadataExtras = bindingSaveMetadata;
     const wrappedPayload = buildWrappedPayload({
       data: parsed,
       version: bindings.version ?? undefined,

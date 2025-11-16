@@ -133,16 +133,40 @@
     }
   });
 
+  const derivedSavePath = (candidate?: string | null) => {
+    const value = candidate?.trim();
+    if (value && isAbsolutePath(value)) {
+      return value;
+    }
+    return undefined;
+  };
+
+  const buildSaveMetadataEntry = (absolutePath?: string | null, label?: string | null) => {
+    const resolvedPath = derivedSavePath(absolutePath);
+    if (resolvedPath) {
+      return { save_path: resolvedPath };
+    }
+    const trimmedLabel = label?.trim();
+    if (trimmedLabel) {
+      return { save_path: trimmedLabel };
+    }
+    return undefined;
+  };
+
   const wrappedPreview = $derived.by(() => {
     if (!parsedConfig || typeof parsedConfig !== "object" || Array.isArray(parsedConfig)) {
       return undefined;
     }
 
     const versionCandidate = versionInput?.trim() || currentVersion?.trim() || undefined;
+    const metadataPreviewLabel =
+      bindings.config_file_display || bindings.config_file || defaultFileName || chosenFileName;
+    const metadataEntry = buildSaveMetadataEntry(bindings.config_file, metadataPreviewLabel);
     const payload = buildWrappedPayload({
       data: parsedConfig as Record<string, unknown>,
       version: versionCandidate,
       savedAt: undefined,
+      metadata: metadataEntry,
     });
 
     return {
@@ -254,21 +278,32 @@
       writeBindingVersion(bindings, normalizedVersion);
       versionInput = normalizedVersion;
     }
-    const payload = buildWrappedPayload({
-      data: dataObject,
-      version: normalizedVersion,
-      savedAt: timestamp,
-    });
-    const serializedConfig = `${JSON.stringify(payload, null, 2)}\n`;
     const targetFileName = chosenFileName || defaultFileName;
     const absoluteTargetPath = resolveAbsoluteTarget(targetFileName, bindings.config_file ?? undefined);
     const fallbackName = absoluteTargetPath || "config.json";
-    const downloadName = extractFileName(absoluteTargetPath) ?? fallbackName;
+    const preferredLabel = extractFileName(absoluteTargetPath) ?? targetFileName ?? fallbackName;
+
+    const buildSerializedConfig = (labelChoice?: string | null) => {
+      const metadataEntry = buildSaveMetadataEntry(absoluteTargetPath, labelChoice ?? preferredLabel);
+      const payload = buildWrappedPayload({
+        data: dataObject,
+        version: normalizedVersion,
+        savedAt: timestamp,
+        metadata: metadataEntry,
+      });
+      return {
+        metadataEntry,
+        label: labelChoice ?? preferredLabel,
+        serialized: `${JSON.stringify(payload, null, 2)}\n`,
+      };
+    };
+
+    let { serialized: serializedConfig, label: currentLabel } = buildSerializedConfig(preferredLabel);
+    const downloadName = currentLabel || fallbackName;
 
     const persistSuccessMetadata = (options?: { absolutePath?: string; label?: string }) => {
       const baselineSource = bindings.current_state ?? latestRawConfig ?? "";
       writeBindingBaselineState(bindings, baselineSource);
-      writeBindingSavedAt(bindings, timestamp);
       const nextAbsolutePath = options?.absolutePath ?? absoluteTargetPath;
       const savedLabel =
         options?.label ?? (nextAbsolutePath ? extractFileName(nextAbsolutePath) : undefined) ?? downloadName;
@@ -278,13 +313,14 @@
       } else if (savedLabel) {
         writeBindingConfigFileDisplay(bindings, savedLabel);
       }
+      writeBindingSavedAt(bindings, timestamp);
       writeBindingError(bindings, "");
       return savedLabel;
     };
 
     if (!supportsFileSystemAccess) {
       downloadFallback(serializedConfig, downloadName);
-      const persistedLabel = persistSuccessMetadata();
+      const persistedLabel = persistSuccessMetadata({ label: currentLabel });
       lastSavedMessage = `Downloaded ${persistedLabel}`;
       return;
     }
@@ -299,6 +335,9 @@
 
       await handle.requestPermission?.({ mode: "readwrite" });
 
+      currentLabel = handle.name ?? currentLabel;
+      ({ serialized: serializedConfig } = buildSerializedConfig(currentLabel));
+
       const writable = await handle.createWritable();
       try {
         const fileBlob = new Blob([serializedConfig], { type: "application/json" });
@@ -311,8 +350,8 @@
         throw writeError;
       }
 
-      const persistedLabel = persistSuccessMetadata({ label: handle.name ?? downloadName });
-      const savedLabel = persistedLabel ?? handle.name ?? downloadName;
+      const persistedLabel = persistSuccessMetadata({ label: currentLabel });
+      const savedLabel = persistedLabel ?? currentLabel ?? downloadName;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
       if (handle.name) {
         chosenFileName = handle.name;
