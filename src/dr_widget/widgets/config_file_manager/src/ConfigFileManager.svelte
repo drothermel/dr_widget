@@ -52,6 +52,27 @@ const canonicalizeState = (value?: string | null) => {
   return (value ?? "").trim();
 };
 
+const buildMetadataSnapshot = () => {
+  const snapshot: Record<string, string> = {};
+  const trimmedVersion = bindings.version?.trim();
+  if (trimmedVersion) {
+    snapshot.version = trimmedVersion;
+  }
+  return snapshot;
+};
+
+const canonicalizeMetadata = (metadata?: Record<string, string>) => {
+  if (!metadata) return "";
+  const entries = Object.entries(metadata)
+    .map(([key, value]) => [key, typeof value === "string" ? value.trim() : value])
+    .filter((entry): entry is [string, string] => Boolean(entry[1] && entry[1].length > 0));
+  if (entries.length === 0) {
+    return "";
+  }
+  entries.sort(([a], [b]) => a.localeCompare(b));
+  return JSON.stringify(Object.fromEntries(entries));
+};
+
 const extractFileName = (value?: string | null) => {
   if (!value) return undefined;
   const parts = value.split(/[\\/]+/).filter(Boolean);
@@ -61,8 +82,15 @@ const extractFileName = (value?: string | null) => {
 
 const parsedFiles = $derived(bindingHandlers.readBoundFiles());
 const baselineParsed = $derived.by(() => parseJsonObject(bindings.baseline_state));
+const metadataSnapshot = $derived.by(() => buildMetadataSnapshot());
+let lastSavedMetadata = $state<Record<string, string>>(buildMetadataSnapshot());
+let lastBaselineSignature = $state(bindings.baseline_state ?? "");
+const metadataDirty = $derived.by(
+  () => canonicalizeMetadata(metadataSnapshot) !== canonicalizeMetadata(lastSavedMetadata),
+);
 const isDirty = $derived.by(
-  () => canonicalizeState(bindings.current_state) !== canonicalizeState(bindings.baseline_state),
+  () =>
+    canonicalizeState(bindings.current_state) !== canonicalizeState(bindings.baseline_state) || metadataDirty,
 );
 const selectedConfigVersion = $derived.by(() => bindings.version ?? "");
 const canEditSelectedConfigVersion = $derived.by(() => Boolean(bindings.current_state && bindings.current_state.trim().length > 0));
@@ -138,8 +166,18 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       showLoadedPreview = false;
       bindingHandlers.writeError("");
       lastObservedSavedAt = savedAt;
+      lastSavedMetadata = buildMetadataSnapshot();
     } else if (!savedAt && lastObservedSavedAt) {
       lastObservedSavedAt = undefined;
+      lastSavedMetadata = buildMetadataSnapshot();
+    }
+  });
+
+  $effect(() => {
+    const baselineSignature = bindings.baseline_state ?? "";
+    if (baselineSignature !== lastBaselineSignature) {
+      lastBaselineSignature = baselineSignature;
+      lastSavedMetadata = buildMetadataSnapshot();
     }
   });
 

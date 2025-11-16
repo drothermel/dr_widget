@@ -201,7 +201,7 @@
     try {
       const handle = await fsWindow.showSaveFilePicker(buildPickerOptions());
       fileHandle = handle;
-      if (!chosenFileName) {
+      if (handle.name) {
         chosenFileName = handle.name;
       }
       saveError = "";
@@ -259,24 +259,28 @@
       writeBindingVersion(bindings, normalizedVersion);
       versionInput = normalizedVersion;
     }
-    const payload = {
-      version: normalizedVersion,
-      saved_at: timestamp,
+    const payload = buildWrappedPayload({
       data: dataObject,
-    };
-    const serializedConfig = JSON.stringify(payload, null, 2);
+      version: normalizedVersion,
+      savedAt: timestamp,
+    });
+    const serializedConfig = `${JSON.stringify(payload, null, 2)}\n`;
     const targetFileName = chosenFileName || defaultFileName;
     const absoluteTargetPath = resolveAbsoluteTarget(targetFileName, bindings.config_file ?? undefined);
     const fallbackName = absoluteTargetPath || "config.json";
     const downloadName = extractFileName(absoluteTargetPath) ?? fallbackName;
 
-    const persistSuccessMetadata = () => {
+    const persistSuccessMetadata = (options?: { absolutePath?: string; label?: string }) => {
       const baselineSource = bindings.current_state ?? latestRawConfig ?? "";
       writeBindingBaselineState(bindings, baselineSource);
       writeBindingSavedAt(bindings, timestamp);
-      if (absoluteTargetPath) {
-        const savedLabel = extractFileName(absoluteTargetPath) ?? downloadName;
-        writeBindingConfigFile(bindings, absoluteTargetPath);
+      const nextAbsolutePath = options?.absolutePath ?? absoluteTargetPath;
+      const savedLabel =
+        options?.label ?? (nextAbsolutePath ? extractFileName(nextAbsolutePath) : undefined) ?? downloadName;
+      if (nextAbsolutePath && isAbsolutePath(nextAbsolutePath)) {
+        writeBindingConfigFile(bindings, nextAbsolutePath);
+        writeBindingConfigFileDisplay(bindings, savedLabel);
+      } else if (savedLabel) {
         writeBindingConfigFileDisplay(bindings, savedLabel);
       }
       writeBindingError(bindings, "");
@@ -300,11 +304,19 @@
       await handle.requestPermission?.({ mode: "readwrite" });
 
       const writable = await handle.createWritable();
-      await writable.write(serializedConfig);
-      await writable.close();
+      try {
+        const fileBlob = new Blob([serializedConfig], { type: "application/json" });
+        await writable.write(fileBlob);
+        await writable.close();
+      } catch (writeError) {
+        if (typeof writable.abort === "function") {
+          await writable.abort();
+        }
+        throw writeError;
+      }
 
-      persistSuccessMetadata();
-      const savedLabel = extractFileName(absoluteTargetPath) ?? handle.name;
+      persistSuccessMetadata({ label: handle.name ?? downloadName });
+      const savedLabel = (absoluteTargetPath && extractFileName(absoluteTargetPath)) ?? handle.name ?? downloadName;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
       fileHandle = handle;
       saveError = "";
