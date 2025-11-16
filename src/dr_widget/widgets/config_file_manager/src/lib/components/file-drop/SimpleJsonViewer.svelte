@@ -196,10 +196,7 @@ const {
   {#if !items.length}
     <span class="_jsonBkt empty" class:isArray={isArray}>
       {brackets[0]}{brackets[1]}
-    </span>
-    {#if !isLast}
-      <span class="_jsonSep">,</span>
-    {/if}
+    </span>{#if !isLast}<span class="_jsonSep">,</span>{/if}
   {:else if collapsed}
     <span
       class="_jsonBkt"
@@ -208,10 +205,7 @@ const {
       tabindex="0"
       onclick={toggleCollapsed}
       onkeydown={handleKeyPress}
-    >{brackets[0]}...{brackets[1]}</span>
-    {#if !isLast && collapsed}
-      <span class="_jsonSep">,</span>
-    {/if}
+    >{brackets[0]}...{brackets[1]}</span>{#if !isLast && collapsed}<span class="_jsonSep">,</span>{/if}
   {:else}
     <span
       class="_jsonBkt"
@@ -255,25 +249,20 @@ const {
                 currentDepth={currentDepth + 1}
                 isLast={!hasRemainingCurrentValues(idx)}
               />
-              {#if meta.hasCurrent && hasRemainingCurrentValues(idx)}
-                <span class="_jsonSep">,</span>
-              {/if}
             {:else if meta.hasCurrent}
               <span
                 class="_jsonVal {getType(currentValue)}"
                 class:diff-added={meta.status === "added" || meta.status === "changed"}
               >
                 {formatPrimitive(currentValue as Primitive)}
-              </span>
-              {#if meta.status === "changed" && meta.hasPrevious}
+              </span><!--
+           -->{#if meta.status === "changed" && meta.hasPrevious}
                 <span class="diff-previous-label">Updated from</span>
                 <span class="_jsonVal {getType(previousValue)} diff-removed">
                   {formatPrimitive(previousValue as Primitive)}
                 </span>
-              {/if}
-              {#if meta.hasCurrent && hasRemainingCurrentValues(idx)}
-                <span class="_jsonSep">,</span>
-              {/if}
+              {/if}<!--
+           -->{#if meta.hasCurrent && hasRemainingCurrentValues(idx)}<span class="_jsonSep">,</span>{/if}
             {:else if meta.hasPrevious}
               <span class="_jsonVal {valueType} diff-removed">
                 {formatPrimitive(previousValue as Primitive)}
@@ -293,10 +282,7 @@ const {
       tabindex="0"
       onclick={toggleCollapsed}
       onkeydown={handleKeyPress}
-    >{brackets[1]}</span>
-    {#if !isLast && diffContext !== "removed"}
-      <span class="_jsonSep">,</span>
-    {/if}
+    >{brackets[1]}</span>{#if !isLast && diffContext !== "removed"}<span class="_jsonSep">,</span>{/if}
   {/if}
 {/if}
 

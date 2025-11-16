@@ -8,10 +8,7 @@ import {
   NodeData,
   NodeProps,
 } from "reaflow";
-import {
-  TransformComponent,
-  TransformWrapper,
-} from "react-zoom-pan-pinch";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 
 type JsonTreeCanvasProps = {
   data?: unknown;
@@ -59,9 +56,7 @@ const createGraph = (input: unknown): BuildResult => {
       width,
       height,
       className:
-        depth === 0
-          ? "json-tree-node json-tree-node--root"
-          : "json-tree-node",
+        depth === 0 ? "json-tree-node json-tree-node--root" : "json-tree-node",
       data: { depth, text },
       selectionDisabled: true,
     });
@@ -90,8 +85,7 @@ const createGraph = (input: unknown): BuildResult => {
     const isObject = value !== null && typeof value === "object";
     const isArray = Array.isArray(value);
 
-    const baseLabel =
-      depth === 0 ? "(root)" : key === "" ? "(item)" : key;
+    const baseLabel = depth === 0 ? "(root)" : key === "" ? "(item)" : key;
 
     let label = baseLabel;
 
@@ -152,9 +146,7 @@ export function JsonTreeCanvas({ data }: JsonTreeCanvasProps) {
         nodes: [],
         edges: [],
         error:
-          err instanceof Error
-            ? err.message
-            : "Failed to render JSON graph.",
+          err instanceof Error ? err.message : "Failed to render JSON graph.",
       };
     }
   }, [data]);

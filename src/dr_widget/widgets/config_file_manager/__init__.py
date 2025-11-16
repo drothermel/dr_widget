@@ -73,6 +73,16 @@ def _normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     normalized: Dict[str, Any] = dict(payload)
     data = normalized.get("data")
 
+    metadata_candidate = normalized.get("metadata")
+    if isinstance(metadata_candidate, dict):
+        metadata: Dict[str, Any] = dict(metadata_candidate)
+    else:
+        metadata = {}
+
+    for legacy_key in ("version", "saved_at"):
+        if legacy_key in normalized and legacy_key not in metadata:
+            metadata[legacy_key] = normalized.pop(legacy_key)
+
     if not isinstance(data, dict):
         user_data: Dict[str, Any] = {}
 
@@ -81,12 +91,13 @@ def _normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
             user_data.setdefault("selections", selections)
 
         for key in list(normalized.keys()):
-            if key in {"version", "saved_at", "data"}:
+            if key in {"version", "saved_at", "data", "metadata"}:
                 continue
             user_data[key] = normalized.pop(key)
 
         data = user_data
 
+    normalized["metadata"] = metadata
     normalized["data"] = data if isinstance(data, dict) else {}
     return normalized
 
@@ -110,16 +121,21 @@ def _load_config_from_file(path: Path) -> Dict[str, Any]:
     return _normalize_payload(parsed)
 
 
-def _write_config_to_file(path: Path, *, data: Dict[str, Any], version: str) -> None:
+def _write_config_to_file(path: Path, *, data: Dict[str, Any], version: str) -> str:
+    saved_at = _utc_timestamp()
     payload = {
-        "version": version,
-        "saved_at": _utc_timestamp(),
+        "metadata": {
+            "version": version,
+            "saved_at": saved_at,
+            "save_path": str(path),
+        },
         "data": data,
     }
 
     serialized = json.dumps(payload, indent=2, sort_keys=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(serialized + "\n", encoding="utf-8")
+    return saved_at
 
 
 def _file_binding_entry(path: Path) -> Dict[str, Any]:
@@ -147,6 +163,7 @@ class ConfigFileManager(anywidget.AnyWidget):
     config_file = traitlets.Unicode("").tag(sync=True)
     config_file_display = traitlets.Unicode("").tag(sync=True)
     version = traitlets.Unicode("default_v0").tag(sync=True)
+    saved_at = traitlets.Unicode("").tag(sync=True)
     files = traitlets.Unicode("[]").tag(sync=True)
     file_count = traitlets.Int(0).tag(sync=True)
     error = traitlets.Unicode("").tag(sync=True)
@@ -165,6 +182,7 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.current_state = ""
         self.baseline_state = ""
         self.config_file = ""
+        self.saved_at = ""
 
         if config_file is None and config_dict is None:
             return
@@ -198,7 +216,11 @@ class ConfigFileManager(anywidget.AnyWidget):
         user_state = file_data if isinstance(file_data, dict) else {}
         serialized_state = _serialize_user_state(user_state)
 
-        payload_version = payload.get("version")
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        payload_version = metadata.get("version")
         if payload_version is not None:
             version_str = _normalize_version(str(payload_version))
             self.version = version_str
@@ -206,6 +228,11 @@ class ConfigFileManager(anywidget.AnyWidget):
         self.config_file = str(path)
         self.current_state = serialized_state
         self.baseline_state = serialized_state
+        saved_at_value = metadata.get("saved_at")
+        if saved_at_value:
+            self.saved_at = str(saved_at_value)
+        else:
+            self.saved_at = ""
 
         file_entry = _file_binding_entry(path)
         self.files = json.dumps([file_entry])

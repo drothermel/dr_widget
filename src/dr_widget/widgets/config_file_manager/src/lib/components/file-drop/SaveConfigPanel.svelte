@@ -4,12 +4,15 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
   import ConfigViewerPanel from "$lib/components/file-drop/ConfigViewerPanel.svelte";
   import { buildWrappedPayload } from "$lib/utils/config-format";
-  import type { FileBinding } from "$lib/hooks/use-file-bindings";
-
-  type SaveResult = {
-    fileName?: string;
-    timestamp: string;
-  };
+  import {
+    writeBindingBaselineState,
+    writeBindingConfigFile,
+    writeBindingConfigFileDisplay,
+    writeBindingError,
+    writeBindingSavedAt,
+    writeBindingVersion,
+    type FileBinding,
+  } from "$lib/hooks/use-file-bindings";
 
   type SaveFilePickerOptions = {
     suggestedName?: string;
@@ -23,6 +26,7 @@
     createWritable: () => Promise<{
       write: (data: Blob | BufferSource | string) => Promise<void>;
       close: () => Promise<void>;
+      abort?: () => Promise<void>;
     }>;
     getFile?: () => Promise<File>;
     requestPermission?: (options?: { mode?: "read" | "readwrite" }) => Promise<PermissionState>;
@@ -38,23 +42,19 @@
     rawConfig,
     baselineConfig,
     defaultFileName = "config.json",
+    saveTargetLabel,
     dirty = false,
     currentVersion = "",
     canEditVersion = false,
-    onSaveSuccess,
-    onSaveError,
-    onVersionChange,
   } = $props<{
     bindings: FileBinding;
     rawConfig?: string;
     baselineConfig?: unknown;
     defaultFileName?: string;
+    saveTargetLabel?: string;
     dirty?: boolean;
     currentVersion?: string;
     canEditVersion?: boolean;
-    onSaveSuccess?: (result: SaveResult) => void;
-    onSaveError?: (message: string) => void;
-    onVersionChange?: (version: string) => void;
   }>();
 
   const isAbsolutePath = (value?: string): boolean => {
@@ -118,7 +118,6 @@
     return trimmedCandidate;
   };
 
-  let fileHandle = $state<BrowserFileHandle | null>(null);
   let chosenFileName = $state(defaultFileName);
   let lastSavedMessage = $state("");
   let saveError = $state("");
@@ -134,16 +133,40 @@
     }
   });
 
+  const derivedSavePath = (candidate?: string | null) => {
+    const value = candidate?.trim();
+    if (value && isAbsolutePath(value)) {
+      return value;
+    }
+    return undefined;
+  };
+
+  const buildSaveMetadataEntry = (absolutePath?: string | null, label?: string | null) => {
+    const resolvedPath = derivedSavePath(absolutePath);
+    if (resolvedPath) {
+      return { save_path: resolvedPath };
+    }
+    const trimmedLabel = label?.trim();
+    if (trimmedLabel) {
+      return { save_path: trimmedLabel };
+    }
+    return undefined;
+  };
+
   const wrappedPreview = $derived.by(() => {
     if (!parsedConfig || typeof parsedConfig !== "object" || Array.isArray(parsedConfig)) {
       return undefined;
     }
 
     const versionCandidate = versionInput?.trim() || currentVersion?.trim() || undefined;
+    const metadataPreviewLabel =
+      bindings.config_file_display || bindings.config_file || defaultFileName || chosenFileName;
+    const metadataEntry = buildSaveMetadataEntry(bindings.config_file, metadataPreviewLabel);
     const payload = buildWrappedPayload({
       data: parsedConfig as Record<string, unknown>,
       version: versionCandidate,
       savedAt: undefined,
+      metadata: metadataEntry,
     });
 
     return {
@@ -158,18 +181,24 @@
       : undefined;
 
   const supportsFileSystemAccess = Boolean(fsWindow?.showSaveFilePicker);
-  const inputId = `save-config-${Math.random().toString(36).slice(2)}`;
   const versionInputId = `config-version-${Math.random().toString(36).slice(2)}`;
+  const defaultSaveLabel = $derived.by(() => {
+    const explicitLabel = saveTargetLabel?.trim();
+    if (explicitLabel) return explicitLabel;
+    const fileName = defaultFileName?.trim();
+    if (fileName) return fileName;
+    return "config.json";
+  });
 
   $effect(() => {
-    if (!fileHandle && defaultFileName && !chosenFileName) {
+    if (defaultFileName && !chosenFileName) {
       chosenFileName = defaultFileName;
     }
   });
 
   let lastDefaultFileName = $state(defaultFileName);
   $effect(() => {
-    if (defaultFileName !== lastDefaultFileName && !fileHandle) {
+    if (defaultFileName !== lastDefaultFileName) {
       chosenFileName = defaultFileName;
       lastDefaultFileName = defaultFileName;
     }
@@ -182,19 +211,7 @@
   const buildPickerOptions = (): SaveFilePickerOptions => {
     const options: SaveFilePickerOptions = {
       suggestedName: chosenFileName || defaultFileName,
-      types: [
-        {
-          description: "JSON",
-          accept: {
-            "application/json": [".json"],
-          },
-        },
-      ],
     };
-
-    if (fileHandle) {
-      options.startIn = fileHandle;
-    }
 
     return options;
   };
@@ -203,8 +220,7 @@
     if (!supportsFileSystemAccess || !fsWindow?.showSaveFilePicker) return null;
     try {
       const handle = await fsWindow.showSaveFilePicker(buildPickerOptions());
-      fileHandle = handle;
-      if (!chosenFileName) {
+      if (handle.name) {
         chosenFileName = handle.name;
       }
       saveError = "";
@@ -215,7 +231,7 @@
       }
       const message = (error as Error)?.message ?? "Unable to choose file location.";
       saveError = message;
-      onSaveError?.(message);
+      writeBindingError(bindings, message);
       return null;
     }
   };
@@ -233,9 +249,10 @@
   };
 
   const handleSave = async () => {
-    if (!rawConfig) {
+    const latestRawConfig = bindings.current_state ?? rawConfig;
+    if (!latestRawConfig) {
       saveError = "No config data available to save.";
-      onSaveError?.(saveError);
+      writeBindingError(bindings, saveError);
       return;
     }
 
@@ -246,7 +263,7 @@
 
     if (!dataObject) {
       saveError = "Config JSON must be an object.";
-      onSaveError?.(saveError);
+      writeBindingError(bindings, saveError);
       return;
     }
 
@@ -257,27 +274,60 @@
     const trimmedInput = versionInput?.trim();
     const fallbackVersion = currentVersion?.trim();
     const normalizedVersion = trimmedInput || fallbackVersion || "default_v0";
-    const payload = {
-      version: normalizedVersion,
-      saved_at: timestamp,
-      data: dataObject,
-    };
-    const serializedConfig = JSON.stringify(payload, null, 2);
+    if ((bindings.version ?? "") !== normalizedVersion) {
+      writeBindingVersion(bindings, normalizedVersion);
+      versionInput = normalizedVersion;
+    }
     const targetFileName = chosenFileName || defaultFileName;
     const absoluteTargetPath = resolveAbsoluteTarget(targetFileName, bindings.config_file ?? undefined);
     const fallbackName = absoluteTargetPath || "config.json";
-    const downloadName = extractFileName(absoluteTargetPath) ?? fallbackName;
+    const preferredLabel = extractFileName(absoluteTargetPath) ?? targetFileName ?? fallbackName;
+
+    const buildSerializedConfig = (labelChoice?: string | null) => {
+      const metadataEntry = buildSaveMetadataEntry(absoluteTargetPath, labelChoice ?? preferredLabel);
+      const payload = buildWrappedPayload({
+        data: dataObject,
+        version: normalizedVersion,
+        savedAt: timestamp,
+        metadata: metadataEntry,
+      });
+      return {
+        metadataEntry,
+        label: labelChoice ?? preferredLabel,
+        serialized: `${JSON.stringify(payload, null, 2)}\n`,
+      };
+    };
+
+    let { serialized: serializedConfig, label: currentLabel } = buildSerializedConfig(preferredLabel);
+    const downloadName = currentLabel || fallbackName;
+
+    const persistSuccessMetadata = (options?: { absolutePath?: string; label?: string }) => {
+      const baselineSource = bindings.current_state ?? latestRawConfig ?? "";
+      writeBindingBaselineState(bindings, baselineSource);
+      const nextAbsolutePath = options?.absolutePath ?? absoluteTargetPath;
+      const savedLabel =
+        options?.label ?? (nextAbsolutePath ? extractFileName(nextAbsolutePath) : undefined) ?? downloadName;
+      if (nextAbsolutePath && isAbsolutePath(nextAbsolutePath)) {
+        writeBindingConfigFile(bindings, nextAbsolutePath);
+        writeBindingConfigFileDisplay(bindings, savedLabel);
+      } else if (savedLabel) {
+        writeBindingConfigFileDisplay(bindings, savedLabel);
+      }
+      writeBindingSavedAt(bindings, timestamp);
+      writeBindingError(bindings, "");
+      return savedLabel;
+    };
 
     if (!supportsFileSystemAccess) {
       downloadFallback(serializedConfig, downloadName);
-      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
-      lastSavedMessage = `Downloaded ${downloadName}`;
+      const persistedLabel = persistSuccessMetadata({ label: currentLabel });
+      lastSavedMessage = `Downloaded ${persistedLabel}`;
       return;
     }
 
     try {
       saving = true;
-      const handle = fileHandle ?? (await pickHandle());
+      const handle = await pickHandle();
       if (!handle) {
         saving = false;
         return;
@@ -285,19 +335,32 @@
 
       await handle.requestPermission?.({ mode: "readwrite" });
 
-      const writable = await handle.createWritable();
-      await writable.write(serializedConfig);
-      await writable.close();
+      currentLabel = handle.name ?? currentLabel;
+      ({ serialized: serializedConfig } = buildSerializedConfig(currentLabel));
 
-      const savedLabel = extractFileName(absoluteTargetPath) ?? handle.name;
+      const writable = await handle.createWritable();
+      try {
+        const fileBlob = new Blob([serializedConfig], { type: "application/json" });
+        await writable.write(fileBlob);
+        await writable.close();
+      } catch (writeError) {
+        if (typeof writable.abort === "function") {
+          await writable.abort();
+        }
+        throw writeError;
+      }
+
+      const persistedLabel = persistSuccessMetadata({ label: currentLabel });
+      const savedLabel = persistedLabel ?? currentLabel ?? downloadName;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
-      fileHandle = handle;
-      onSaveSuccess?.({ fileName: absoluteTargetPath, timestamp });
+      if (handle.name) {
+        chosenFileName = handle.name;
+      }
       saveError = "";
     } catch (error) {
       const message = (error as Error)?.message ?? "Failed to save config.";
       saveError = message;
-      onSaveError?.(message);
+      writeBindingError(bindings, message);
     } finally {
       saving = false;
     }
@@ -329,23 +392,23 @@
         oninput={(event) => {
           const nextValue = (event.target as HTMLInputElement).value;
           versionInput = nextValue;
-          onVersionChange?.(nextValue);
+          const trimmed = nextValue.trim();
+          writeBindingVersion(bindings, trimmed || "");
         }}
       />
     </div>
 
-    <div class="space-y-2">
-      <label class="text-sm font-medium text-zinc-600 dark:text-zinc-300" for={inputId}>File name</label>
-      <input
-        class="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
-        id={inputId}
-        value={chosenFileName}
-        placeholder={defaultFileName}
-        oninput={(event) => (chosenFileName = (event.target as HTMLInputElement).value)}
-      />
-      {#if !supportsFileSystemAccess}
-        <p class="text-xs text-zinc-500 dark:text-zinc-400">
-          Your browser doesn’t support the File System Access API. We’ll download the file instead.
+    <div class="rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300">
+      {#if supportsFileSystemAccess}
+        <p>
+          Default file name:
+          <span class="font-medium text-zinc-900 dark:text-zinc-100">{defaultSaveLabel}</span>. You'll choose the folder after clicking
+          <span class="font-medium">Save</span>.
+        </p>
+      {:else}
+        <p>
+          Download name:
+          <span class="font-medium text-zinc-900 dark:text-zinc-100">{defaultSaveLabel}</span>. Your browser will download the file directly.
         </p>
       {/if}
     </div>
@@ -361,11 +424,6 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
-      {#if supportsFileSystemAccess}
-        <Button variant="outline" onclick={pickHandle} disabled={saving}>
-          Choose location…
-        </Button>
-      {/if}
       <Button onclick={handleSave} disabled={!rawConfig || saving}>
         {saving ? "Saving…" : supportsFileSystemAccess ? "Save" : "Download"}
       </Button>

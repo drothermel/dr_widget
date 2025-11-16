@@ -1,38 +1,28 @@
 # Config Manager Follow-Ups
 
 **Created:** 2025-11-13
-**Last Updated:** 2025-11-13 9:07 AM
-**Status:** Multiple steps in progress, continually adding outstanding tasks
+**Last Updated:** 2025-11-16 8:05 PM
+**Status:** Saving promotes the written file to the “loaded” config and UI polish (like raw version labels) keeps Browse/View in lockstep with Save—no mismatched metadata or extra prefixes remain.
 *Note: timestamp each element with last updated time in EST.*
 
 ## In Progress
 
-1. **Unify SaveConfigPanel bindings** (2025-11-13 8:00 AM)
-   - Current UI passes discrete callbacks (`onVersionChange`, `onSaveSuccess`) but not the binding object.  
-   - Decide whether to follow the original plan (pass `bindings` so the panel can update `baseline_state`, `config_file`, etc.) or document why we’re keeping callbacks.  
-   - Implement the chosen path and update docs/notebook accordingly.
-
-2. **Normalize `config_file` to absolute paths**  (2025-11-13 9:07 AM)
-   - **Solution implemented:** Python now resolves every `config_file` assignment through `_resolve_config_path`, ensuring traitlet values are absolute (and updating `config_file_display` via an observer). On the frontend, `SaveConfigPanel` receives the binding object, computes an absolute target path for both download + File System Access saves, and emits that path back in `onSaveSuccess`.  
-   - **Expected behavior:** `widget.config_file` is always absolute regardless of how it was set (init args, UI loads, or saves). The UI continues to show only the basename via `config_file_display`, and post-save traitlet updates should reflect the canonical absolute location. Needs manual notebook validation on macOS/Linux paths and browser save flows.
+1. **Normalize `config_file` to absolute paths**  (2025-11-16 1:48 PM)
+   - **Solution implemented:** `_resolve_config_path` now runs on every traitlet assignment (constructor + validator) and `SaveConfigPanel.svelte` resolves save targets via `resolveAbsoluteTarget` before writing bindings directly, so anything persisted through the panel is already absolute.
+   - **Expected behavior:** `widget.config_file` is canonicalized no matter how it’s set (init args, UI loads, or saves). The UI should surface only the basename via `config_file_display`, while saves/downloads write to the normalized absolute path. Manual notebook validation is still required on macOS + Linux along with both File System Access and download flows.
    - **ISSUES FOUND**
-        - When we initialize with a file then the "File name" input field shows `test_state-v0.json` as it should.  But if you load the same file after initialization the "File name" UI element shows `/Users/daniellerothermel/drotherm/repos/dr_widget/test_state-v0.json` which is likely caused by this change.
-        - When we update the version in the save config panel then the config isn't marked dirty and the "Saved Payload" section doesn't show a diff for the version.  The isDirty should be based on all the data and metadata except for the saved at field.
+        - **Resolved 2025-11-16 3:20 PM:** `ConfigFileManager.svelte` now snapshots metadata (excluding `saved_at`) when baseline updates, so editing version/metadata toggles the dirty badge and wrapped preview as expected.
 
 ## Needs Testing
 
 
 ## Outstanding Tasks
 
-1. **Pull the metadata into its own sub-dict like the "data" field** (2025-11-13 9:07 AM)
+1. **Make it possible to "full height" the config preview** (2025-11-13 9:07 AM)
 
-2. **Add save path to the file written metadata** (2025-11-13 9:07 AM)
+2. **Make it possible to edit the config in the config preview** (2025-11-13 9:07 AM)
 
-3. **Make it possible to "full height" the config preview** (2025-11-13 9:07 AM)
-
-4. **Make it possible to edit the config in the config preview** (2025-11-13 9:07 AM)
-
-5. **Easy copy/update helper for notebooks**   (2025-11-13 8:30 AM)
+3. **Easy copy/update helper for notebooks**   (2025-11-13 8:30 AM)
    - Notebook authors currently hand-roll `json.loads(widget.current_state)` → mutate → `json.dumps`.  
    - Provide a small helper (Python function or documented pattern) that copies `current_data`, applies updates, and writes back, making “UI element updates widget” demos cleaner.
 
@@ -46,3 +36,23 @@
    - Added shared config-format helpers, captured wrapped payloads during load/save, and wired every preview surface with a two-tab toggle (Editable Data vs Saved Payload) so users can switch between editable JSON and the exact on-disk structure.  
    - “Saved Payload” view preserves metadata ordering (version/saved_at before data), ensuring the preview matches the saved file layout; all previews now rely on the same normalization logic.
 
+3. **Unify SaveConfigPanel bindings** (2025-11-16 1:48 PM)
+   - `SaveConfigPanel.svelte` now imports the reusable binding writers (`writeBindingBaselineState`, `writeBindingConfigFile`, `writeBindingSavedAt`, etc.) and mutates traitlets directly instead of bouncing through callbacks.
+   - `ConfigFileManager.svelte` listens for `bindings.saved_at` changes to rebuild the metadata summary/preview, so the panel no longer emits `onSaveSuccess/onSaveError/onVersionChange` props.
+   - Added a synced `saved_at` trait to the Python widget + docs so notebook authors can read the last save timestamp; future notebook helpers should rely on this instead of re-parsing saved files.
+
+4. **Nest metadata under its own dict + include it in dirty checks** (2025-11-16 3:20 PM)
+   - Python saves files as `{ "metadata": { version, saved_at }, "data": {...} }`, and `_normalize_payload` migrates any legacy files into that structure for free.
+   - Shared helpers (`normalizeConfigPayload`, `buildWrappedPayload`) and the Svelte previews now operate on the nested metadata so notebook previews mirror on-disk structure.
+   - `ConfigFileManager.svelte` snapshots metadata on each baseline update (ignoring `saved_at`), so changing version/metadata without touching data toggles the dirty badge and wrapped preview diff.
+
+5. **Unify metadata source across Save/Browse/View** (2025-11-16 5:45 PM)
+   - Introduced a reactive `bindingSaveMetadata` fallback so Browse/View previews recompute when bindings update, clearing any stale metadata after saves.
+   - `LoadedConfigSummary` now refreshes when metadata-only bindings change, so the "View Config" drawer mirrors the same `save_path` and version that the Save flow just wrote.
+
+6. **Treat saved configs as newly loaded configs** (2025-11-16 6:32 PM)
+   - `SaveConfigPanel` writes `config_file`/`config_file_display` before updating `saved_at`, allowing the parent widget to snapshot the latest metadata immediately.
+   - `ConfigFileManager.svelte` captures that metadata as the authoritative `loadedMetadataExtras`, so Browse/View show the just-saved path/version and defaults now follow the most recent save.
+
+7. **Polish version badge copy** (2025-11-16 8:05 PM)
+   - Removed the hard-coded `v` prefix from every version badge so semantic version strings display verbatim across Browse, View, and the main card.

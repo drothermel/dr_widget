@@ -73,11 +73,11 @@
                   {#if savedAtLabel}
                     <span>Saved {savedAtLabel}</span>
                   {/if}
-                  {#if versionLabel}
-                    <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
-                      v{versionLabel}
-                    </Badge>
-                  {/if}
+              {#if versionLabel}
+                <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
+                  {versionLabel}
+                </Badge>
+              {/if}
                   {#if dirty}
                     <Badge variant="secondary" class="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
                       Unsaved changes

@@ -100,7 +100,7 @@ widget.current_state  # traitlet that will stay synced via write-back
 </script>
 ```
 
-This snippet mirrors the current widget: track a `lastWritten*` value per traitlet, update each tracker via callbacks before touching the binding, and gate every write-back in its own `$effect`. All shared helpers live under `$lib/...`, so new widgets can reuse the same logic without fiddling with relative paths.
+This snippet shows the original (now retired) pattern: track a `lastWritten*` value per traitlet, update each tracker via callbacks before touching the binding, and gate every write-back in its own `$effect`. As of **2025-11-16**, `ConfigFileManager` no longer needs these trackers—the UI calls the helper writers in `$lib/hooks/use-file-bindings.ts` (e.g., `writeBindingSavedAt`, `writeBindingConfigFileDisplay`) directly, and traitlet changes propagate back to Marimo without the intermediate callbacks. The historical context below still explains why we care about propagating updates both directions.
 
 ## The Problem
 

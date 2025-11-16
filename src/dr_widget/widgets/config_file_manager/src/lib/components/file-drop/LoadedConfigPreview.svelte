@@ -43,7 +43,7 @@
           {/if}
           {#if versionLabel}
             <Badge variant="secondary" class="px-2 py-0.5 text-[0.65rem]">
-              v{versionLabel}
+              {versionLabel}
             </Badge>
           {/if}
           {#if dirty}

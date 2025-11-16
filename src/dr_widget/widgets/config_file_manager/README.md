@@ -15,7 +15,7 @@ The `dr_widget` package ships an AnyWidget-powered config file manager so notebo
 | --- | --- | --- |
 | `current_state` | ↔ | JSON string representing **user data only** (no metadata). |
 | `baseline_state` | ↔ | Last saved value of `current_state`, used for dirty detection/diffs. |
-| `version` | ↔ | String metadata displayed in the UI and written to disk alongside `current_state`. |
+| `version` | ↔ | String metadata displayed in the UI and written to disk alongside `current_state` (now nested under `metadata.version`). |
 | `config_file` | ↔ | Path to the backing file (may be relative today). |
 | `config_file_display` | ↔ | UI-friendly label derived from `config_file`. |
 | `files` | ↔ | JSON array of uploaded files (`{ name, size, type }`). |
@@ -44,7 +44,7 @@ ConfigFileManager(
     config_dict={"selections": {"foo": True}},
     version="v2",
 )
-# - writes wrapped payload {version,saved_at,data}
+# - writes wrapped payload {metadata:{version,saved_at},data}
 # - baseline_state matches current_state
 ```
 
@@ -52,13 +52,15 @@ Files saved through the UI (or via `config_file` + `config_dict`) are always wri
 
 ```json
 {
-  "version": "v1",
-  "saved_at": "2025-11-12T10:30:00Z",
+  "metadata": {
+    "version": "v1",
+    "saved_at": "2025-11-12T10:30:00Z"
+  },
   "data": { ... user data ... }
 }
 ```
 
-Older files that only contain `selections` or embed metadata at the top level are migrated into this structure when loaded.
+Older files that only contain `selections` or embed metadata at the top level are migrated into this structure when loaded, with legacy `version`/`saved_at` values relocated under `metadata`.
 
 ## Frontend Behavior
 
