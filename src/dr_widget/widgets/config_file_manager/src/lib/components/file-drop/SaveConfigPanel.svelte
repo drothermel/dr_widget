@@ -187,14 +187,6 @@
   const buildPickerOptions = (): SaveFilePickerOptions => {
     const options: SaveFilePickerOptions = {
       suggestedName: chosenFileName || defaultFileName,
-      types: [
-        {
-          description: "JSON",
-          accept: {
-            "application/json": [".json"],
-          },
-        },
-      ],
     };
 
     return options;
@@ -287,12 +279,13 @@
         writeBindingConfigFileDisplay(bindings, savedLabel);
       }
       writeBindingError(bindings, "");
+      return savedLabel;
     };
 
     if (!supportsFileSystemAccess) {
       downloadFallback(serializedConfig, downloadName);
-      persistSuccessMetadata();
-      lastSavedMessage = `Downloaded ${downloadName}`;
+      const persistedLabel = persistSuccessMetadata();
+      lastSavedMessage = `Downloaded ${persistedLabel}`;
       return;
     }
 
@@ -318,8 +311,8 @@
         throw writeError;
       }
 
-      persistSuccessMetadata({ label: handle.name ?? downloadName });
-      const savedLabel = (absoluteTargetPath && extractFileName(absoluteTargetPath)) ?? handle.name ?? downloadName;
+      const persistedLabel = persistSuccessMetadata({ label: handle.name ?? downloadName });
+      const savedLabel = persistedLabel ?? handle.name ?? downloadName;
       lastSavedMessage = `Saved ${savedLabel} at ${new Date(timestamp).toLocaleString()}`;
       if (handle.name) {
         chosenFileName = handle.name;

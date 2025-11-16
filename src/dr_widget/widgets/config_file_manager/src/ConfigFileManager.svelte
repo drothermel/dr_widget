@@ -80,6 +80,9 @@ const extractFileName = (value?: string | null) => {
   return parts[parts.length - 1];
 };
 
+const hasMetadataEntries = (metadata?: Record<string, unknown>) =>
+  Boolean(metadata && Object.keys(metadata).length > 0);
+
 const parsedFiles = $derived(bindingHandlers.readBoundFiles());
 const baselineParsed = $derived.by(() => parseJsonObject(bindings.baseline_state));
 const metadataSnapshot = $derived.by(() => buildMetadataSnapshot());
@@ -108,6 +111,7 @@ let previewJson = $state<unknown | undefined>(() => {
     return undefined;
   }
 });
+let loadedMetadataExtras = $state<Record<string, unknown>>({});
 const normalizedPreview = $derived.by(() => {
   if (!previewJson || typeof previewJson !== "object") return undefined;
   return normalizeConfigPayload(previewJson);
@@ -117,6 +121,23 @@ const normalizedPreviewData = $derived.by(() => {
   return JSON.stringify(normalizedPreview.data, null, 2);
 });
 const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
+const previewWrappedPayload = $derived.by(() => {
+  if (!normalizedPreview) return undefined;
+  const previewMetadata = hasMetadataEntries(normalizedPreview.metadata)
+    ? normalizedPreview.metadata
+    : hasMetadataEntries(loadedMetadataExtras)
+      ? loadedMetadataExtras
+      : undefined;
+  return buildWrappedPayload({
+    data: normalizedPreview.data,
+    version: normalizedPreview.version ?? bindings.version ?? undefined,
+    savedAt: normalizedPreview.savedAt ?? bindings.saved_at ?? undefined,
+    metadata: previewMetadata,
+  });
+});
+const previewWrappedJson = $derived.by(() =>
+  previewWrappedPayload ? JSON.stringify(previewWrappedPayload, null, 2) : undefined,
+);
   let managerOpen = $state(false);
   let activeTab = $state("find");
   let lastLoadedFileName = $state<string | undefined>(undefined);
@@ -221,9 +242,9 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     }
   });
 
-  const previewSavedAt = $derived.by(() => formatSavedAt(normalizedPreview?.savedAt));
+const previewSavedAt = $derived.by(() => formatSavedAt(normalizedPreview?.savedAt ?? bindings.saved_at));
 
-  const previewVersion = $derived.by(() => normalizedPreview?.version);
+const previewVersion = $derived.by(() => normalizedPreview?.version);
 
   // managerOpen, isDirty
   $effect(() => {
@@ -236,6 +257,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     const raw = bindings.current_state;
     if (!raw || raw.trim().length === 0) {
       loadedConfigSummary = undefined;
+      loadedMetadataExtras = {};
       previewFromLoaded = false;
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
@@ -251,10 +273,12 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       const value = bindings.saved_at?.trim();
       return value ? value : undefined;
     })();
+    const metadataExtras = hasMetadataEntries(loadedMetadataExtras) ? loadedMetadataExtras : undefined;
     const wrappedPayload = buildWrappedPayload({
       data: parsed,
       version: bindings.version ?? undefined,
       savedAt: savedAtValue,
+      metadata: metadataExtras,
     });
     const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
 
@@ -292,6 +316,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     previewText = fileText;
     bindingHandlers.writeError("");
     previewFromLoaded = false;
+    loadedMetadataExtras = {};
   };
 
   const handleRemove = () => {
@@ -307,6 +332,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       showLoadedPreview = false;
       lastLoadedFileName = undefined;
       loadedConfigPath = undefined;
+      loadedMetadataExtras = {};
       bindingHandlers.writeError("");
       resetPreviewState();
       return;
@@ -320,6 +346,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
     loadedConfigPath = undefined;
     bindingHandlers.writeConfigFileDisplay("");
     bindingHandlers.writeSavedAt("");
+    loadedMetadataExtras = {};
   };
 
   const handleLoadConfig = () => {
@@ -352,6 +379,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
       savedAt: normalized.savedAt ?? undefined,
     });
     const wrappedJson = JSON.stringify(wrappedPayload, null, 2);
+    loadedMetadataExtras = normalized.metadata ?? {};
 
     bindingHandlers.writeCurrentState(dataJson);
     bindingHandlers.writeBaselineState(dataJson);
@@ -455,8 +483,8 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
             onRemove={handleRemove}
             onLoad={handleLoadConfig}
             disableLoad={isLoadedConfigCurrent}
-            wrappedContents={previewText}
-            wrappedParsed={previewJson}
+            wrappedContents={previewWrappedJson ?? previewText}
+            wrappedParsed={previewWrappedPayload ?? previewJson}
           />
         </Tabs.Content>
 
@@ -532,7 +560,7 @@ const normalizedPreviewParsed = $derived.by(() => normalizedPreview?.data);
           <Button variant="outline" onclick={() => (managerOpen = true)}>
             Manage Configs
           </Button>
-          {#if loadedConfigSummary?.rawText}
+{#if loadedConfigSummary?.rawText}
             <Button
               variant="outline"
               disabled={!loadedConfigSummary?.rawText}
