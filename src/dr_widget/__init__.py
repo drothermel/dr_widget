@@ -1,5 +1,1 @@
-"""Top-level package for dr_widget."""
-
-from .widgets.config_file_manager import ConfigFileManager
-
-__all__ = ["ConfigFileManager"]
+"""dr_widget: anywidget library. Import tiers explicitly (dr_widget.inline, dr_widget.bundled)."""

@@ -1,6 +1,6 @@
 [project]
 name = "dr-widget"
-version = "0.1.5"
+version = "0.2.0"
 description = "Widgets to use with marimo notebooks"
 readme = "README.md"
 authors = [
@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "anywidget>=0.9.18",
-    "marimo>=0.19.4",
+    "marimo>=0.23",
     "pydantic>=2.12.4",
     "traitlets>=5.14.3",
 ]
@@ -19,10 +19,10 @@ requires = ["uv_build>=0.9.7,<0.10.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-source-include = ["src/dr_widget/widgets/config_file_manager/static/**"]
+source-include = ["src/dr_widget/bundled/config_file_manager/static/**"]
 source-exclude = [
-    "src/dr_widget/widgets/config_file_manager/node_modules",
-    "src/dr_widget/widgets/config_file_manager/node_modules/**",
+    "src/dr_widget/bundled/config_file_manager/node_modules",
+    "src/dr_widget/bundled/config_file_manager/node_modules/**",
 ]
 
 [dependency-groups]

@@ -1,16 +1,19 @@
 # Architecture Overview
 
-This project glues together three layers:
+This project glues together three layers, with AnyWidget classes organized into two tiers by **physical shape**:
 
 1. **Python package (`src/dr_widget`)**
-   - Exposes AnyWidget subclasses (e.g., `ConfigFileManager`) that notebooks instantiate.
-   - Ship the compiled frontend bundle by pointing `_esm`/`_css` at files under `static/`.  
-   - Traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last persisted payload for dirty detection, `saved_at` exposes the last save timestamp, and `version`/`config_file` surface metadata directly to notebooks.
+   - Exposes AnyWidget subclasses in two tiers:
+     - `src/dr_widget/inline/<name>.py` – pure-Python widgets whose `_esm` is a string literal. Zero JS build; only deps are `anywidget` + `traitlets`. Example: `ActiveHtml`, which mounts HTML and executes embedded `<script>` tags so libraries like Plotly work when composed into other widgets.
+     - `src/dr_widget/bundled/<name>/` – widgets whose `_esm` points at a built bundle on disk (`static/index.js`). Example: `ConfigFileManager`.
+   - The top-level `src/dr_widget/__init__.py` is intentionally empty so `from dr_widget.inline import …` does not pull in bundled modules and vice versa.
+   - Bundled widgets ship the compiled frontend by pointing `_esm`/`_css` at files under `static/`.
+   - For `ConfigFileManager`, traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last persisted payload for dirty detection, `saved_at` exposes the last save timestamp, and `version`/`config_file` surface metadata directly to notebooks.
 
-2. **Widget workspace (`src/dr_widget/widgets/config_file_manager`)**
+2. **Widget workspace (`src/dr_widget/bundled/config_file_manager`)**
    - Bun workspace with its own `package.json`, Vite config, and Tailwind CSS.
    - `src/ConfigFileManager.svelte` orchestrates the notebook bindings and re-exports composed panels.
-   - Shared logic lives under `src/lib/` (hooks + UI components) so multiple widgets can reuse the same patterns.
+   - Shared logic lives under `src/lib/` (hooks + UI components) so multiple bundled widgets can reuse the same patterns.
 
 3. **Build + packaging pipeline**  
 - `bun run dev:config-file-manager` / `bun run build:config-file-manager` run Vite to emit `static/index.js` + `static/style.css`.
@@ -34,7 +37,10 @@ ConfigFileManager (AnyWidget)  ── embeds ──▶  static/index.js (Svelte 
 
 ### Extending the Architecture
 
-- New widgets live under `src/dr_widget/widgets/<name>` with their own `package.json` and Vite entry.  
-- Keep shared UI/logic in `src/lib/` (e.g., additional hooks or components) so future widgets stay consistent.  
-- When you add a widget, wire scripts in the root `package.json` (`build:<name>`, `dev:<name>`) and include its `static/` folder in `pyproject.toml`.  
-- For heavier apps, promote reusable components into a dedicated library workspace so SvelteKit projects can import them directly.
+Pick a tier based on what the widget's JS actually needs:
+
+- **Inline** – a single `.py` file under `src/dr_widget/inline/` with `_esm` as a string literal. Use when the JS is short, has no dependencies beyond the browser, and doesn't need a bundler. Re-export the class from `src/dr_widget/inline/__init__.py`. No changes needed in the root `package.json` or `pyproject.toml`.
+- **Bundled** – a JS workspace under `src/dr_widget/bundled/<name>/` with its own `package.json` and Vite entry. Use when the widget needs a component library (Svelte, React, etc.) or a build step.
+  - Keep shared UI/logic in `src/lib/` (hooks or components) so future bundled widgets stay consistent.
+  - Wire scripts in the root `package.json` (`build:<name>`, `dev:<name>`) and include its `static/**` folder in `pyproject.toml`.
+  - For heavier apps, promote reusable components into a dedicated library workspace so SvelteKit projects can import them directly.

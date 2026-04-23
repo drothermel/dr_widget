@@ -1,6 +1,11 @@
 # dr_widget
 
-dr_widget is a hybrid Python/Svelte project for building reusable AnyWidget components that can be dropped into Marimo notebooks today and exported to full Svelte apps later. The repository currently ships a Config File Manager widget, but the layout is designed to host additional widgets.
+dr_widget is a library of reusable AnyWidget components that can be dropped into Marimo notebooks. Widgets are organized into two tiers based on their physical shape:
+
+- **Inline widgets** (`dr_widget.inline`) – pure-Python widgets whose JS is a short string literal. Zero build step, minimal deps. Useful for small browser-side helpers.
+- **Bundled widgets** (`dr_widget.bundled`) – widgets backed by their own JS workspace (Svelte, React, etc.) that builds to a `static/` bundle. Useful when you need a component library or transpilation.
+
+The top-level `dr_widget` package is intentionally empty so importing from one tier does not drag in the other.
 
 ## Quick Start
 
@@ -21,12 +26,13 @@ uv build
 marimo run notebooks/config_file_manager_widget.py
 ```
 
-Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `uv`, and Marimo ≥ 0.17.6.
+Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `uv`, and Marimo ≥ 0.23.
 
 ## Repository Layout
 
-- `src/dr_widget/` – Python package exposing AnyWidget classes.
-  - `widgets/config_file_manager/` – widget workspace (Svelte source in `src/`, build output in `static/`).
+- `src/dr_widget/` – Python package with two widget tiers.
+  - `inline/` – pure-Python AnyWidgets (e.g., `ActiveHtml`) with `_esm` as a string literal.
+  - `bundled/config_file_manager/` – bundled widget workspace (Svelte source in `src/`, build output in `static/`).
     - `src/ConfigFileManager.svelte` – orchestration layer wiring bindings into the panel components.
     - `src/lib/hooks/use-file-bindings.ts` – shared logic for syncing AnyWidget traitlets.
     - `src/lib/components/` – shadcn-style UI primitives and panels, including a config viewer card with both a tree view and graph view for JSON payloads.
