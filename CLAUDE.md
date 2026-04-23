@@ -137,7 +137,7 @@ ConfigFileManager(
 
 ## AnyWidget Traitlet Contracts
 
-Traitlets in `ConfigFileManager` (`src/dr_widget/widgets/config_file_manager/__init__.py`):
+Traitlets in `ConfigFileManager` (`src/dr_widget/bundled/config_file_manager/__init__.py`):
 
 | Trait | Notes |
 | --- | --- |

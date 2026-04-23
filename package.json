@@ -1,14 +1,14 @@
 {
   "name": "dr_widget",
   "version": "0.1.0",
-  "workspaces": ["src/dr_widget/widgets/*"],
+  "workspaces": ["src/dr_widget/bundled/*"],
   "scripts": {
     "build": "bun run build:all",
     "build:all": "bun run build:config-file-manager",
-    "build:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite build",
+    "build:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite build",
     "dev": "bun run dev:config-file-manager",
-    "dev:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite dev",
-    "preview:config-file-manager": "bun --cwd src/dr_widget/widgets/config_file_manager vite preview"
+    "dev:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite dev",
+    "preview:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite preview"
   },
   "module": "index.ts",
   "type": "module",

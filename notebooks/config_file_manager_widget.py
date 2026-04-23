@@ -11,7 +11,7 @@ with app.setup:
     import marimo as mo
     from pydantic import BaseModel, computed_field, field_validator, model_validator
 
-    from dr_widget import ConfigFileManager
+    from dr_widget.bundled import ConfigFileManager
 
     # Hardcode for testing notebook
     library_path = "/Users/daniellerothermel/drotherm/data/config_library"

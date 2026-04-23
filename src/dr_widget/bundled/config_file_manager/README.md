@@ -1,12 +1,12 @@
 # Config File Manager Widget
 
-The `dr_widget` package ships an AnyWidget-powered config file manager so notebooks can load, inspect, edit, and save JSON configuration blobs without leaving the browser. The frontend lives under `src/dr_widget/widgets/config_file_manager`, is built with Svelte + Vite via Bun, and syncs its state to Python traitlets.
+The `dr_widget` package ships an AnyWidget-powered config file manager so notebooks can load, inspect, edit, and save JSON configuration blobs without leaving the browser. The frontend lives under `src/dr_widget/bundled/config_file_manager`, is built with Svelte + Vite via Bun, and syncs its state to Python traitlets.
 
 ## Repository Layout
 
-- `src/dr_widget/widgets/config_file_manager/__init__.py` – AnyWidget class with initialization helpers and traitlet contracts.
-- `src/dr_widget/widgets/config_file_manager/src/` – Svelte workspace (components live under `lib/`).
-- `src/dr_widget/widgets/config_file_manager/static/` – Built bundle consumed by AnyWidget.
+- `src/dr_widget/bundled/config_file_manager/__init__.py` – AnyWidget class with initialization helpers and traitlet contracts.
+- `src/dr_widget/bundled/config_file_manager/src/` – Svelte workspace (components live under `lib/`).
+- `src/dr_widget/bundled/config_file_manager/static/` – Built bundle consumed by AnyWidget.
 - `notebooks/config_file_manager_widget.py` – Marimo demo that exercises the widget end-to-end.
 
 ## Traitlets
@@ -72,7 +72,7 @@ Older files that only contain `selections` or embed metadata at the top level ar
 
 ```bash
 bun install
-npx svelte-check --tsconfig src/dr_widget/widgets/config_file_manager/tsconfig.json
+npx svelte-check --tsconfig src/dr_widget/bundled/config_file_manager/tsconfig.json
 bun run build:config-file-manager
 bun run build  # aggregates widgets (currently same as line above)
 uv build       # packages the Python wheel with fresh static assets
@@ -82,8 +82,8 @@ Manual validation: run `marimo run notebooks/config_file_manager_widget.py`, loa
 
 ## Contributing Tips
 
-- Shared UI lives in `src/dr_widget/widgets/config_file_manager/src/lib/{components,hooks}`; prefer reusing hooks like `use-file-bindings`.
+- Shared UI lives in `src/dr_widget/bundled/config_file_manager/src/lib/{components,hooks}`; prefer reusing hooks like `use-file-bindings`.
 - Keep Tailwind utility classes grouped logically (layout → spacing → color → effects).
 - Treat `node_modules/` as generated; never edit or commit them.
-- Run `bunx prettier --write src/dr_widget/widgets/config_file_manager/src` before opening a PR.
+- Run `bunx prettier --write src/dr_widget/bundled/config_file_manager/src` before opening a PR.
 - Document new traitlets or metadata fields in `docs/architecture.md` and notebook demos to keep Python + Svelte in sync.
