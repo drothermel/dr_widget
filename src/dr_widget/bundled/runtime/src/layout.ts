@@ -11,13 +11,15 @@ export function whenLayoutReady(
   callback: LayoutReadyCallback,
 ): () => void {
   let cancelled = false;
+  let completed = false;
   let observer: ResizeObserver | null = null;
 
   const run = () => {
-    if (cancelled) {
+    if (cancelled || completed) {
       return;
     }
     if (element.clientWidth > 0 || element.clientHeight > 0) {
+      completed = true;
       callback(element);
       observer?.disconnect();
       observer = null;
