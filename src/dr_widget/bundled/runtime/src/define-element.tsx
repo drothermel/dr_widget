@@ -75,14 +75,19 @@ export function defineDrElement<P extends Record<string, unknown>>(
     }
 
     attributeChangedCallback(
-      _name: string,
+      name: string,
       oldValue: string | null,
       newValue: string | null,
     ) {
       if (oldValue === newValue) {
         return;
       }
-      this.#bindDataChannel();
+      if (!this.isConnected) {
+        return;
+      }
+      if (name === dataRefAttribute) {
+        this.#bindDataChannel();
+      }
       this.#render();
     }
 
