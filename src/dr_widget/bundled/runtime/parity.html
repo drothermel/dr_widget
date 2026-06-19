@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dr-hello built runtime parity</title>
+  </head>
+  <body>
+    <h1>Built runtime parity</h1>
+    <p>
+      <dr-hello id="hello" name="World"></dr-hello>
+    </p>
+    <label>
+      Name
+      <input id="name-input" type="text" value="World" />
+    </label>
+    <button id="apply-name" type="button">Apply name attribute</button>
+
+    <script src="./static/runtime.js"></script>
+    <script>
+      const hello = document.getElementById('hello');
+      const input = document.getElementById('name-input');
+      const button = document.getElementById('apply-name');
+
+      button.addEventListener('click', () => {
+        hello.setAttribute('name', input.value);
+      });
+    </script>
+  </body>
+</html>

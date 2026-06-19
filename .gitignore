@@ -1,6 +1,7 @@
 # Build
 **/static/index.js
 **/static/style.css
+**/static/runtime.js
 **/static/vite.svg
 dist/
 

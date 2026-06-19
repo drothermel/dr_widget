@@ -16,14 +16,18 @@ bun install
 # Live-reload the Config File Manager widget in a browser
 bun run dev:config-file-manager
 
-# Produce the optimized bundle used by AnyWidget
+# Live-reload the shared dr-* runtime (dr-hello proof)
+bun run dev:runtime
+
+# Produce the optimized bundles used by AnyWidget + runtime loader
 bun run build
 
 # Build the Python distributions (wheel + sdist)
 uv build
 
-# Launch the Marimo demo notebook
+# Launch demo notebooks
 marimo run notebooks/config_file_manager_widget.py
+marimo run notebooks/runtime_hello_widget.py
 ```
 
 Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `uv`, and Marimo ≥ 0.23.
@@ -31,13 +35,12 @@ Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `u
 ## Repository Layout
 
 - `src/dr_widget/` – Python package with two widget tiers.
-  - `inline/` – pure-Python AnyWidgets (e.g., `ActiveHtml`) with `_esm` as a string literal.
-  - `bundled/config_file_manager/` – bundled widget workspace (Svelte source in `src/`, build output in `static/`).
-    - `src/ConfigFileManager.svelte` – orchestration layer wiring bindings into the panel components.
-    - `src/lib/hooks/use-file-bindings.ts` – shared logic for syncing AnyWidget traitlets.
-    - `src/lib/components/` – shadcn-style UI primitives and panels, including a config viewer card with both a tree view and graph view for JSON payloads.
+  - `inline/` – pure-Python AnyWidgets (e.g., `ActiveHtml`, `load_dr_runtime()`).
+  - `bundled/config_file_manager/` – Svelte widget workspace (source in `src/`, build output in `static/`).
+  - `bundled/runtime/` – React custom-element runtime (`static/runtime.js`); proof element `<dr-hello>`.
 - `docs/` – additional reference material (architecture, development workflows).
-- `notebooks/config_file_manager_widget.py` – Marimo notebook that exercises the Config File Manager widget.
+- `notebooks/config_file_manager_widget.py` – Marimo notebook for the Config File Manager widget.
+- `notebooks/runtime_hello_widget.py` – Marimo notebook for `load_dr_runtime()` + `<dr-hello>`.
 
 ## Documentation
 
