@@ -21,7 +21,14 @@ Follow Prettier defaults (two-space indent, single quotes allowed) for TypeScrip
 - `src/lib/hooks/use-file-bindings.ts` – centralizes AnyWidget binding logic (`read/write`, dedupe, upload/remove).
 - `src/lib/components/file-drop/*` – higher-level panels (`BrowseConfigsPanel`, `SaveConfigPanel`, `SelectedFilesList`, `SelectedFileRow`).
 - `src/lib/components/ui/*` – shadcn-svelte primitives (cards, dialogs, tabs, etc.) in local copies for customization.
-Import from `$lib/...` so Vite aliases resolve correctly. Whenever you scaffold new shadcn components, stage the files (remember `.gitignore` no longer hides `lib/`).
+Whenever you scaffold new shadcn components, stage the files (remember `.gitignore` no longer hides `lib/`).
+
+## Bundled widget imports
+Each bundled workspace under `src/dr_widget/bundled/<name>/` is self-contained. Use the import style that matches where the module lives:
+
+- **`src/lib/` shared code** (hooks, components, utils): import via `$lib/...` when the workspace defines that Vite alias (e.g. `config_file_manager`).
+- **Same-workspace modules** under `src/` (siblings like `./data-channel`, `./components/Hello`): use relative paths. Do not rewrite these as `$lib/...`.
+- **No blanket `$lib/` rule**: only workspaces with a `$lib` → `src/lib` alias in `vite.config.js` / `tsconfig.json` support it. `runtime/` has no `src/lib/` tree and uses relative imports throughout.
 
 ## Testing Guidelines
 Automated tests are not yet configured. When adding features, include manual verification steps in the PR and consider scaffolding Vitest suites under `src/dr_widget/bundled/config_file_manager/src/lib/__tests__`. Snapshotting rendered widgets via `@testing-library/svelte` is preferred once the harness lands; target coverage for new logic should be 80%+. Until then, confirm drag/drop flows in the dev server across Chrome and Firefox before submitting.
