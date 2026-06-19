@@ -5,7 +5,7 @@
 
 import marimo
 
-__generated_with = "0.17.7"
+__generated_with = "0.23.2"
 app = marimo.App(width="medium")
 
 with app.setup:
@@ -19,7 +19,7 @@ with app.setup:
 @app.cell(hide_code=True)
 def _():
     load_dr_runtime()
-    return ()
+    return
 
 
 @app.cell(hide_code=True)
@@ -44,7 +44,7 @@ def _(name_index):
             mo.Html(f'<dr-hello name="{name}"></dr-hello>'),
         ]
     )
-    return ()
+    return
 
 
 if __name__ == "__main__":
