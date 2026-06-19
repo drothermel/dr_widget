@@ -72,7 +72,7 @@ Use when the widget needs a component library (Svelte, React, etc.) or transpila
 
 - Manual smoke test in the relevant Vite dev server.
 - Config File Manager: drag/drop, error states, version editing, dirty badge; load legacy and new config shapes; save and verify `{metadata,data}` file shape.
-- Runtime: `<dr-hello>` upgrades; attribute changes re-render in dev and in `notebooks/runtime_hello_widget.py`.
+- Runtime: `<dr-hello>` upgrades; attribute changes re-render in dev and in `notebooks/runtime_hello_widget.py`. Exercise `data-props` JSON and `data-ref` + `window.__drRuntime.data.set(...)` in the same notebook.
 - `npx svelte-check` for Config File Manager type errors.
 - `bun run build` — all bundled workspaces compile without warnings.
 - `uv build` — wheel contains updated `static/` assets.

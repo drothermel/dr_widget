@@ -31,7 +31,20 @@ static/runtime.js  ── defines ──▶  <dr-*> custom elements (window regi
 ```
 
 - `load_dr_runtime()` reads the built IIFE from disk and wraps it in a define-once guard before handing it to `ActiveHtml`.
-- Each `<dr-*>` element mounts React in its own light DOM; prop updates arrive via `attributeChangedCallback`.
+- Each `<dr-*>` element mounts React in its own light DOM via `defineDrElement()`:
+  - `connectedCallback` → `createRoot` + initial render
+  - `attributeChangedCallback` → re-render (with `observedAttributes` declared)
+  - `disconnectedCallback` → unmount + unsubscribe from the data channel
+- **Design rules baked into the base pattern:** all render logic lives in a shared
+  `#render()` called from both connect and attribute change (never only on connect);
+  use `whenLayoutReady()` from the runtime for geometry — never measure in
+  `connectedCallback`.
+- **Data delivery contract:**
+  - **Small/structured props** → JSON in `data-props`, parsed on each render.
+  - **Large payloads** → `data-ref="<id>"` on the element; payload stored in
+    `window.__drRuntime.data` (`set` / `get` / `subscribe`). Python (or host code)
+    emits the id; the runtime holds the bytes. Channel updates re-render subscribed
+    elements without a marimo attribute change.
 
 ### Config File Manager data flow
 
