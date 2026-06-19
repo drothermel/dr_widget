@@ -5,8 +5,13 @@ type PropsPanelProps = {
 };
 
 export function PropsPanel({ title, items }: PropsPanelProps) {
-  const heading = title?.trim() || 'Props panel';
-  const rows = items ?? [];
+  const heading =
+    typeof title === 'string' && title.trim().length > 0
+      ? title.trim()
+      : 'Props panel';
+  const rows = Array.isArray(items)
+    ? items.filter((item): item is string => typeof item === 'string')
+    : [];
 
   return (
     <div>
