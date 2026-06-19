@@ -31,7 +31,7 @@ export function createDataChannel(): DataChannel {
     },
     delete(id) {
       payloads.delete(id);
-      listeners.delete(id);
+      notify(id, undefined);
     },
     subscribe(id, listener) {
       let subs = listeners.get(id);
@@ -40,9 +40,10 @@ export function createDataChannel(): DataChannel {
         listeners.set(id, subs);
       }
       subs.add(listener);
+      const currentSubs = subs;
       return () => {
-        subs?.delete(listener);
-        if (subs && subs.size === 0) {
+        currentSubs.delete(listener);
+        if (currentSubs.size === 0 && listeners.get(id) === currentSubs) {
           listeners.delete(id);
         }
       };
