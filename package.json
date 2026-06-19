@@ -4,10 +4,12 @@
   "workspaces": ["src/dr_widget/bundled/*"],
   "scripts": {
     "build": "bun run build:all",
-    "build:all": "bun run build:config-file-manager",
+    "build:all": "bun run build:config-file-manager && bun run build:runtime",
     "build:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite build",
+    "build:runtime": "bun --cwd src/dr_widget/bundled/runtime vite build",
     "dev": "bun run dev:config-file-manager",
     "dev:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite dev",
+    "dev:runtime": "bun --cwd src/dr_widget/bundled/runtime vite dev",
     "preview:config-file-manager": "bun --cwd src/dr_widget/bundled/config_file_manager vite preview"
   },
   "module": "index.ts",

@@ -4,24 +4,36 @@ This project glues together three layers, with AnyWidget classes organized into 
 
 1. **Python package (`src/dr_widget`)**
    - Exposes AnyWidget subclasses in two tiers:
-     - `src/dr_widget/inline/<name>.py` – pure-Python widgets whose `_esm` is a string literal. Zero JS build; only deps are `anywidget` + `traitlets`. Example: `ActiveHtml`, which mounts HTML and executes embedded `<script>` tags so libraries like Plotly work when composed into other widgets.
-     - `src/dr_widget/bundled/<name>/` – widgets whose `_esm` points at a built bundle on disk (`static/index.js`). Example: `ConfigFileManager`.
+     - `src/dr_widget/inline/<name>.py` – pure-Python widgets whose `_esm` is a string literal. Zero JS build; only deps are `anywidget` + `traitlets`. Examples: `ActiveHtml` (mounts HTML and executes embedded `<script>` tags) and `load_dr_runtime()` (inlines the built React runtime once per page).
+     - `src/dr_widget/bundled/<name>/` – widgets whose `_esm` points at a built bundle on disk (`static/index.js`). Example: `ConfigFileManager`. The `runtime` workspace also lives here but is consumed by the inline loader rather than as its own AnyWidget.
    - The top-level `src/dr_widget/__init__.py` is intentionally empty so `from dr_widget.inline import …` does not pull in bundled modules and vice versa.
    - Bundled widgets ship the compiled frontend by pointing `_esm`/`_css` at files under `static/`.
    - For `ConfigFileManager`, traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last persisted payload for dirty detection, `saved_at` exposes the last save timestamp, and `version`/`config_file` surface metadata directly to notebooks.
 
-2. **Widget workspace (`src/dr_widget/bundled/config_file_manager`)**
-   - Bun workspace with its own `package.json`, Vite config, and Tailwind CSS.
-   - `src/ConfigFileManager.svelte` orchestrates the notebook bindings and re-exports composed panels.
-   - Shared logic lives under `src/lib/` (hooks + UI components) so multiple bundled widgets can reuse the same patterns.
+2. **Widget workspaces (`src/dr_widget/bundled/`)**
+   - **`config_file_manager`** – Svelte + Tailwind workspace. `src/ConfigFileManager.svelte` orchestrates notebook bindings; shared logic lives under `src/lib/`. Vite emits `static/index.js` + `static/style.css`.
+   - **`runtime`** – React workspace that builds `static/runtime.js` (IIFE). Defines `<dr-*>` custom elements via `defineDrElement()`. Loaded once per host through `load_dr_runtime()` in the inline tier.
 
-3. **Build + packaging pipeline**  
-- `bun run dev:config-file-manager` / `bun run build:config-file-manager` run Vite to emit `static/index.js` + `static/style.css`.
-- `uv build` creates wheels/sdists that include the `static/` assets (see `pyproject.toml` include rules).  
-- Marimo pulls the wheel straight off disk; the notebook demo is the final integration test.
-- The widget ships with a `ConfigViewerPanel` that renders both a simple tree view and a graph-style visualisation of JSON configs so notebook users can inspect uploads inline. The simple view is implemented in Svelte, while the graph view is bridged through a lightweight React wrapper rendered via Vite’s React plugin.
+3. **Packaging**
+   - Built assets under each workspace's `static/` folder are included in the Python wheel (see `pyproject.toml`).
+   - Marimo notebook demos are the integration test surface.
+   - The Config File Manager ships with a `ConfigViewerPanel` that renders both a simple tree view and a graph-style visualisation of JSON configs. The simple view is implemented in Svelte; the graph view uses a React wrapper in the same Vite build.
 
-### Data Flow
+### Component runtime data flow
+
+```text
+Marimo notebook
+        │ load_dr_runtime() once (ActiveHtml inline script)
+        ▼
+static/runtime.js  ── defines ──▶  <dr-*> custom elements (window registry)
+        ▲
+        │ mo.Html('<dr-hello name="...">')  (pure markup, light DOM)
+```
+
+- `load_dr_runtime()` reads the built IIFE from disk and wraps it in a define-once guard before handing it to `ActiveHtml`.
+- Each `<dr-*>` element mounts React in its own light DOM; prop updates arrive via `attributeChangedCallback`.
+
+### Config File Manager data flow
 
 ```text
 Marimo Notebook (Python)
