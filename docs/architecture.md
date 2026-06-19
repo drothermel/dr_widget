@@ -11,15 +11,13 @@ This project glues together three layers, with AnyWidget classes organized into 
    - For `ConfigFileManager`, traitlets (`current_state`, `baseline_state`, `version`, `config_file`, `config_file_display`, `saved_at`, `files`, `file_count`, `error`) are the single source of truth for state moving between Python and Svelte. `current_state` mirrors the user-editable data, `baseline_state` tracks the last persisted payload for dirty detection, `saved_at` exposes the last save timestamp, and `version`/`config_file` surface metadata directly to notebooks.
 
 2. **Widget workspaces (`src/dr_widget/bundled/`)**
-   - **`config_file_manager`** – Bun workspace with Svelte + Tailwind. `src/ConfigFileManager.svelte` orchestrates notebook bindings; shared logic lives under `src/lib/`.
+   - **`config_file_manager`** – Svelte + Tailwind workspace. `src/ConfigFileManager.svelte` orchestrates notebook bindings; shared logic lives under `src/lib/`. Vite emits `static/index.js` + `static/style.css`.
    - **`runtime`** – React workspace that builds `static/runtime.js` (IIFE). Defines `<dr-*>` custom elements via `defineDrElement()`. Loaded once per host through `load_dr_runtime()` in the inline tier.
 
-3. **Build + packaging pipeline**  
-- `bun run dev:config-file-manager` / `bun run build:config-file-manager` run Vite to emit `static/index.js` + `static/style.css`.
-- `bun run dev:runtime` / `bun run build:runtime` build the shared custom-element runtime to `static/runtime.js`.
-- `uv build` creates wheels/sdists that include the `static/` assets (see `pyproject.toml` include rules).  
-- Marimo pulls the wheel straight off disk; the notebook demo is the final integration test.
-- The widget ships with a `ConfigViewerPanel` that renders both a simple tree view and a graph-style visualisation of JSON configs so notebook users can inspect uploads inline. The simple view is implemented in Svelte, while the graph view is bridged through a lightweight React wrapper rendered via Vite’s React plugin.
+3. **Packaging**
+   - Built assets under each workspace's `static/` folder are included in the Python wheel (see `pyproject.toml`).
+   - Marimo notebook demos are the integration test surface.
+   - The Config File Manager ships with a `ConfigViewerPanel` that renders both a simple tree view and a graph-style visualisation of JSON configs. The simple view is implemented in Svelte; the graph view uses a React wrapper in the same Vite build.
 
 ### Component runtime data flow
 

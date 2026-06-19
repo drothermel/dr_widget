@@ -9,28 +9,8 @@ The top-level `dr_widget` package is intentionally empty so importing from one t
 
 ## Quick Start
 
-```bash
-# Install JS dependencies (root + workspace)
-bun install
-
-# Live-reload the Config File Manager widget in a browser
-bun run dev:config-file-manager
-
-# Live-reload the shared dr-* runtime (dr-hello proof)
-bun run dev:runtime
-
-# Produce the optimized bundles used by AnyWidget + runtime loader
-bun run build
-
-# Build the Python distributions (wheel + sdist)
-uv build
-
-# Launch demo notebooks
-marimo run notebooks/config_file_manager_widget.py
-marimo run notebooks/runtime_hello_widget.py
-```
-
-Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `uv`, and Marimo ≥ 0.23.
+See [Development Workflow](docs/development.md) for install, build, packaging, and
+notebook commands.
 
 ## Repository Layout
 
@@ -51,8 +31,7 @@ Prerequisites: Bun ≥ 1.0, Node-compatible environment, Python ≥ 3.11 with `u
 ## Contributing
 
 1. Work inside a dedicated branch.
-2. Run `bun run build`, `npx svelte-check`, and `uv build` before opening a PR.
-3. Update the notebook and docs when you add or change widget behaviour.
-4. Follow the commit and PR practices outlined in `AGENTS.md`.
+2. Follow [docs/development.md](docs/development.md) and [AGENTS.md](AGENTS.md) before opening a PR.
+3. Update notebooks and docs when you add or change widget behaviour.
 
 Please open an issue if you hit build problems or want to discuss new widgets.
