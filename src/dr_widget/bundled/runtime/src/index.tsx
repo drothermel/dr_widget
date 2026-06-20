@@ -1,3 +1,4 @@
+import { Badge } from './components/Badge';
 import { Hello } from './components/Hello';
 import { PropsPanel } from './components/PropsPanel';
 import { createDataChannel } from './data-channel';
@@ -7,6 +8,7 @@ const RUNTIME_VERSION = '0.2.0';
 const dataChannel = createDataChannel();
 
 defineDrElement('dr-hello', Hello, ['name'], dataChannel);
+defineDrElement('dr-badge', Badge, [], dataChannel);
 defineDrElement('dr-props-panel', PropsPanel, [], dataChannel);
 
 window.__drRuntime = {
